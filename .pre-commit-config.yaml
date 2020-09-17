@@ -7,3 +7,11 @@ repos:
     language: system
     types: [python]
     pass_filenames: false
+  - id: update-requirements-txt
+    name: update-requirements-txt
+    entry: pip
+    args: [freeze, \>, requirements.txt]
+    pass_filenames: false
+    language: system
+    types: [python]
+    always_run: true
