@@ -33,46 +33,15 @@ from locomotion.envs.sensors import environment_sensors
 from locomotion.envs.sensors import sensor_wrappers
 from locomotion.envs.sensors import robot_sensors
 from locomotion.envs.utilities import controllable_env_randomizer_from_config
+from locomotion.robots import a1
 from locomotion.robots import laikago
+from locomotion.robots import robot_config
 
 
-def build_a1_env(motor_control_mode, enable_rendering):
-
-  sim_params = locomotion_gym_config.SimulationParameters()
-  sim_params.enable_rendering = enable_rendering
-  sim_params.motor_control_mode = motor_control_mode
-  sim_params.reset_time = 2
-  sim_params.num_action_repeat = 10
-  sim_params.enable_action_interpolation = False
-  sim_params.enable_action_filter = False
-  sim_params.enable_clip_motor_commands = False
-
-  gym_config = locomotion_gym_config.LocomotionGymConfig(
-      simulation_parameters=sim_params)
-
-  robot_class = laikago.Laikago
-
-  sensors = [
-      robot_sensors.MotorAngleSensor(num_motors=laikago.NUM_MOTORS),
-      robot_sensors.IMUSensor(),
-      environment_sensors.LastActionSensor(num_actions=laikago.NUM_MOTORS)
-  ]
-
-  task = default_task.DefaultTask()
-
-  env = locomotion_gym_env.LocomotionGymEnv(gym_config=gym_config,
-                                            robot_class=robot_class,
-                                            robot_sensors=sensors,
-                                            task=task)
-
-  #env = observation_dictionary_to_array_wrapper.ObservationDictionaryToArrayWrapper(env)
-  #env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(env,
-  #                                                                     trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(action_limit=laikago.UPPER_BOUND))
-
-  return env
-
-
-def build_laikago_env(motor_control_mode, enable_rendering):
+def build_regular_env(robot_class,
+                      motor_control_mode,
+                      enable_rendering=False,
+                      on_rack=False):
 
   sim_params = locomotion_gym_config.SimulationParameters()
   sim_params.enable_rendering = enable_rendering
@@ -82,16 +51,14 @@ def build_laikago_env(motor_control_mode, enable_rendering):
   sim_params.enable_action_interpolation = False
   sim_params.enable_action_filter = False
   sim_params.enable_clip_motor_commands = False
+  sim_params.robot_on_rack = on_rack
 
   gym_config = locomotion_gym_config.LocomotionGymConfig(
       simulation_parameters=sim_params)
 
-  robot_class = laikago.Laikago
-
   sensors = [
-      robot_sensors.MotorAngleSensor(num_motors=laikago.NUM_MOTORS),
       robot_sensors.IMUSensor(),
-      environment_sensors.LastActionSensor(num_actions=laikago.NUM_MOTORS)
+      robot_sensors.MotorAngleSensor(num_motors=a1.NUM_MOTORS),
   ]
 
   task = default_task.DefaultTask()
@@ -101,10 +68,19 @@ def build_laikago_env(motor_control_mode, enable_rendering):
                                             robot_sensors=sensors,
                                             task=task)
 
-  #env = observation_dictionary_to_array_wrapper.ObservationDictionaryToArrayWrapper(env)
-  #env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(env,
-  #                                                                     trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(action_limit=laikago.UPPER_BOUND))
-
+  env = observation_dictionary_to_array_wrapper.ObservationDictionaryToArrayWrapper(
+      env)
+  if motor_control_mode == robot_config.MotorControlMode.POSITION:
+    if robot_class == laikago.Laikago:
+      env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(
+          env,
+          trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(
+              action_limit=laikago.UPPER_BOUND))
+    elif robot_class == a1.A1:
+      env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(
+          env,
+          trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(
+              action_limit=0.75))
   return env
 
 

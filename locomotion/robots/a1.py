@@ -16,17 +16,16 @@
 import os
 import sys
 import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+currentdir = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
-
-
 """Pybullet simulation of a Laikago robot."""
 import math
 import os
 import re
 import numpy as np
-import pybullet as pyb # pytype: disable=import-error
+import pybullet as pyb  # pytype: disable=import-error
 
 from locomotion.robots import laikago_pose_utils
 from locomotion.robots import laikago_constants
@@ -38,25 +37,25 @@ from locomotion.envs import locomotion_gym_config
 NUM_MOTORS = 12
 NUM_LEGS = 4
 MOTOR_NAMES = [
-    "FR_hip_motor_2_chassis_joint",
-    "FR_upper_leg_2_hip_motor_joint",
-    "FR_lower_leg_2_upper_leg_joint",
-    "FL_hip_motor_2_chassis_joint",
-    "FL_upper_leg_2_hip_motor_joint",
-    "FL_lower_leg_2_upper_leg_joint",
-    "RR_hip_motor_2_chassis_joint",
-    "RR_upper_leg_2_hip_motor_joint",
-    "RR_lower_leg_2_upper_leg_joint",
-    "RL_hip_motor_2_chassis_joint",
-    "RL_upper_leg_2_hip_motor_joint",
-    "RL_lower_leg_2_upper_leg_joint",
+    "FR_hip_joint",
+    "FR_upper_joint",
+    "FR_lower_joint",
+    "FL_hip_joint",
+    "FL_upper_joint",
+    "FL_lower_joint",
+    "RR_hip_joint",
+    "RR_upper_joint",
+    "RR_lower_joint",
+    "RL_hip_joint",
+    "RL_upper_joint",
+    "RL_lower_joint",
 ]
 INIT_RACK_POSITION = [0, 0, 1]
 INIT_POSITION = [0, 0, 0.48]
-JOINT_DIRECTIONS = np.array([-1, 1, 1, 1, 1, 1, -1, 1, 1, 1, 1, 1])
+JOINT_DIRECTIONS = np.ones(12)
 HIP_JOINT_OFFSET = 0.0
-UPPER_LEG_JOINT_OFFSET = -0.6
-KNEE_JOINT_OFFSET = 0.66
+UPPER_LEG_JOINT_OFFSET = 0.0
+KNEE_JOINT_OFFSET = 0.0
 DOFS_PER_LEG = 3
 JOINT_OFFSETS = np.array(
     [HIP_JOINT_OFFSET, UPPER_LEG_JOINT_OFFSET, KNEE_JOINT_OFFSET] * 4)
@@ -71,7 +70,7 @@ _DEFAULT_HIP_POSITIONS = (
 )
 
 ABDUCTION_P_GAIN = 220.0
-ABDUCTION_D_GAIN = 0.3
+ABDUCTION_D_GAIN = 1.
 HIP_P_GAIN = 220.0
 HIP_D_GAIN = 2.0
 KNEE_P_GAIN = 220.0
@@ -84,39 +83,63 @@ INIT_MOTOR_ANGLES = np.array([
     laikago_pose_utils.LAIKAGO_DEFAULT_KNEE_ANGLE
 ] * NUM_LEGS)
 
-_CHASSIS_NAME_PATTERN = re.compile(r"\w+_chassis_\w+")
-_MOTOR_NAME_PATTERN = re.compile(r"\w+_hip_motor_\w+")
-_KNEE_NAME_PATTERN = re.compile(r"\w+_lower_leg_\w+")
-_TOE_NAME_PATTERN = re.compile(r"jtoe\d*")
+HIP_NAME_PATTERN = re.compile(r"\w+_hip_\w+")
+UPPER_NAME_PATTERN = re.compile(r"\w+_upper_\w+")
+LOWER_NAME_PATTERN = re.compile(r"\w+_lower_\w+")
+TOE_NAME_PATTERN = re.compile(r"\w+_toe\d*")
+IMU_NAME_PATTERN = re.compile(r"imu\d*")
 
-URDF_FILENAME = "laikago/laikago_toes_limits.urdf"
+URDF_FILENAME = "a1/a1.urdf"
 
 _BODY_B_FIELD_NUMBER = 2
 _LINK_A_FIELD_NUMBER = 3
 
-UPPER_BOUND = 6.28318548203
-LOWER_BOUND = -6.28318548203
 
-class Laikago(minitaur.Minitaur):
+class A1(minitaur.Minitaur):
   """A simulation for the Laikago robot."""
 
   ACTION_CONFIG = [
-      locomotion_gym_config.ScalarField(name="motor_angle_0", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_1", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_2", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_3", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_4", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_5", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_6", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_7", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_8", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_9", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_10", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_11", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND)
+      locomotion_gym_config.ScalarField(name="FR_hip_motor",
+                                        upper_bound=0.802851455917,
+                                        lower_bound=-0.802851455917),
+      locomotion_gym_config.ScalarField(name="FR_upper_joint",
+                                        upper_bound=4.18879020479,
+                                        lower_bound=-1.0471975512),
+      locomotion_gym_config.ScalarField(name="FR_lower_joint",
+                                        upper_bound=-0.916297857297,
+                                        lower_bound=-2.69653369433),
+      locomotion_gym_config.ScalarField(name="FL_hip_motor",
+                                        upper_bound=0.802851455917,
+                                        lower_bound=-0.802851455917),
+      locomotion_gym_config.ScalarField(name="FL_upper_joint",
+                                        upper_bound=4.18879020479,
+                                        lower_bound=-1.0471975512),
+      locomotion_gym_config.ScalarField(name="FL_lower_joint",
+                                        upper_bound=-0.916297857297,
+                                        lower_bound=-2.69653369433),
+      locomotion_gym_config.ScalarField(name="RR_hip_motor",
+                                        upper_bound=0.802851455917,
+                                        lower_bound=-0.802851455917),
+      locomotion_gym_config.ScalarField(name="RR_upper_joint",
+                                        upper_bound=4.18879020479,
+                                        lower_bound=-1.0471975512),
+      locomotion_gym_config.ScalarField(name="RR_lower_joint",
+                                        upper_bound=-0.916297857297,
+                                        lower_bound=-2.69653369433),
+      locomotion_gym_config.ScalarField(name="RL_hip_motor",
+                                        upper_bound=0.802851455917,
+                                        lower_bound=-0.802851455917),
+      locomotion_gym_config.ScalarField(name="RL_upper_joint",
+                                        upper_bound=4.18879020479,
+                                        lower_bound=-1.0471975512),
+      locomotion_gym_config.ScalarField(name="RL_lower_joint",
+                                        upper_bound=-0.916297857297,
+                                        lower_bound=-2.69653369433),
   ]
 
 
-  def __init__(self,
+  def __init__(
+      self,
       pybullet_client,
       urdf_filename=URDF_FILENAME,
       enable_clip_motor_commands=True,
@@ -127,26 +150,28 @@ class Laikago(minitaur.Minitaur):
       on_rack=False,
       enable_action_interpolation=True,
       enable_action_filter=True,
-      motor_control_mode = None,
-      reset_time = -1,
-      allow_knee_contact = False,
+      motor_control_mode=None,
+      reset_time=-1,
+      allow_knee_contact=False,
   ):
     self._urdf_filename = urdf_filename
     self._allow_knee_contact = allow_knee_contact
     self._enable_clip_motor_commands = enable_clip_motor_commands
 
-    motor_kp = [ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN,
-                ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN,
-                ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN,
-                ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN]
-    motor_kd = [ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN,
-                ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN,
-                ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN,
-                ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN]
+    motor_kp = [
+        ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN, ABDUCTION_P_GAIN,
+        HIP_P_GAIN, KNEE_P_GAIN, ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN,
+        ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN
+    ]
+    motor_kd = [
+        ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN, ABDUCTION_D_GAIN,
+        HIP_D_GAIN, KNEE_D_GAIN, ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN,
+        ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN
+    ]
 
-    motor_torque_limits = None # jp hack
+    motor_torque_limits = None  # jp hack
 
-    super(Laikago, self).__init__(
+    super(A1, self).__init__(
         pybullet_client=pybullet_client,
         time_step=time_step,
         action_repeat=action_repeat,
@@ -164,10 +189,7 @@ class Laikago(minitaur.Minitaur):
         on_rack=on_rack,
         enable_action_interpolation=enable_action_interpolation,
         enable_action_filter=enable_action_filter,
-        reset_time = reset_time
-        )
-
-    return
+        reset_time=reset_time)
 
   def _LoadRobotURDF(self):
     laikago_urdf_path = self.GetURDFFile()
@@ -223,7 +245,7 @@ class Laikago(minitaur.Minitaur):
     """Compute the Jacobian for a given leg."""
     # Because of the default rotation in the Laikago URDF, we need to reorder
     # the rows in the Jacobian matrix.
-    return super(Laikago, self).ComputeJacobian(leg_id)[(2, 0, 1), :]
+    return super(A1, self).ComputeJacobian(leg_id)[(2, 0, 1), :]
 
   def ResetPose(self, add_constraint):
     del add_constraint
@@ -236,17 +258,19 @@ class Laikago(minitaur.Minitaur):
           targetVelocity=0,
           force=0)
     for name, i in zip(MOTOR_NAMES, range(len(MOTOR_NAMES))):
-      if "hip_motor_2_chassis_joint" in name:
+      if "hip_joint" in name:
         angle = INIT_MOTOR_ANGLES[i] + HIP_JOINT_OFFSET
-      elif "upper_leg_2_hip_motor_joint" in name:
+      elif "upper_joint" in name:
         angle = INIT_MOTOR_ANGLES[i] + UPPER_LEG_JOINT_OFFSET
-      elif "lower_leg_2_upper_leg_joint" in name:
+      elif "lower_joint" in name:
         angle = INIT_MOTOR_ANGLES[i] + KNEE_JOINT_OFFSET
       else:
         raise ValueError("The name %s is not recognized as a motor joint." %
                          name)
-      self._pybullet_client.resetJointState(
-          self.quadruped, self._joint_name_to_id[name], angle, targetVelocity=0)
+      self._pybullet_client.resetJointState(self.quadruped,
+                                            self._joint_name_to_id[name],
+                                            angle,
+                                            targetVelocity=0)
 
   def GetURDFFile(self):
     return self._urdf_filename
@@ -257,41 +281,43 @@ class Laikago(minitaur.Minitaur):
     Raises:
       ValueError: Unknown category of the joint name.
     """
-    num_joints = self._pybullet_client.getNumJoints(self.quadruped)
-    self._chassis_link_ids = [-1]
+    num_joints = self.pybullet_client.getNumJoints(self.quadruped)
+    self._hip_link_ids = [-1]
     self._leg_link_ids = []
     self._motor_link_ids = []
-    self._knee_link_ids = []
+    self._lower_link_ids = []
     self._foot_link_ids = []
+    self._imu_link_ids = []
 
     for i in range(num_joints):
-      joint_info = self._pybullet_client.getJointInfo(self.quadruped, i)
+      joint_info = self.pybullet_client.getJointInfo(self.quadruped, i)
       joint_name = joint_info[1].decode("UTF-8")
       joint_id = self._joint_name_to_id[joint_name]
-      if _CHASSIS_NAME_PATTERN.match(joint_name):
-        self._chassis_link_ids.append(joint_id)
-      elif _MOTOR_NAME_PATTERN.match(joint_name):
+      if HIP_NAME_PATTERN.match(joint_name):
+        self._hip_link_ids.append(joint_id)
+      elif UPPER_NAME_PATTERN.match(joint_name):
         self._motor_link_ids.append(joint_id)
       # We either treat the lower leg or the toe as the foot link, depending on
       # the urdf version used.
-      elif _KNEE_NAME_PATTERN.match(joint_name):
-        self._knee_link_ids.append(joint_id)
-      elif _TOE_NAME_PATTERN.match(joint_name):
+      elif LOWER_NAME_PATTERN.match(joint_name):
+        self._lower_link_ids.append(joint_id)
+      elif TOE_NAME_PATTERN.match(joint_name):
+        #assert self._urdf_filename == URDF_WITH_TOES
         self._foot_link_ids.append(joint_id)
+      elif IMU_NAME_PATTERN.match(joint_name):
+        self._imu_link_ids.append(joint_id)
       else:
         raise ValueError("Unknown category of joint %s" % joint_name)
 
-    self._leg_link_ids.extend(self._knee_link_ids)
+    self._leg_link_ids.extend(self._lower_link_ids)
     self._leg_link_ids.extend(self._foot_link_ids)
-    if self._allow_knee_contact:
-      self._foot_link_ids.extend(self._knee_link_ids)
 
-    self._chassis_link_ids.sort()
+    #assert len(self._foot_link_ids) == NUM_LEGS
+    self._hip_link_ids.sort()
     self._motor_link_ids.sort()
+    self._lower_link_ids.sort()
     self._foot_link_ids.sort()
     self._leg_link_ids.sort()
-
-    return
 
   def _GetMotorNames(self):
     return MOTOR_NAMES
@@ -307,7 +333,7 @@ class Laikago(minitaur.Minitaur):
     # and belly towards y axis. The following transformation is to transform
     # the Laikago initial orientation to our commonly used orientation: heading
     # towards -x direction, and z axis is the up direction.
-    init_orientation = pyb.getQuaternionFromEuler([math.pi / 2.0, 0, math.pi / 2.0])
+    init_orientation = pyb.getQuaternionFromEuler([0., 0., 0.])
     return init_orientation
 
   def GetDefaultInitPosition(self):
@@ -334,8 +360,7 @@ class Laikago(minitaur.Minitaur):
     if self._enable_clip_motor_commands:
       motor_commands = self._ClipMotorCommands(motor_commands)
 
-    super(Laikago, self).ApplyAction(motor_commands, motor_control_mode)
-    return
+    super(A1, self).ApplyAction(motor_commands, motor_control_mode)
 
   def _ClipMotorCommands(self, motor_commands):
     """Clips motor commands.
@@ -360,4 +385,3 @@ class Laikago(minitaur.Minitaur):
   def GetConstants(cls):
     del cls
     return laikago_constants
-
