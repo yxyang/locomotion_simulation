@@ -12,22 +12,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """A simple locomotion task and termination condition."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 
-class DefaultTask(object):
+
+class SimpleForwardTask(object):
   """Default empy task."""
-
   def __init__(self):
     """Initializes the task."""
-    self._draw_ref_model_alpha = 1.
-    self._ref_model = -1
-    return
+    self.current_base_pos = np.zeros(3)
+    self.last_base_pos = np.zeros(3)
 
   def __call__(self, env):
     return self.reward(env)
@@ -35,12 +34,13 @@ class DefaultTask(object):
   def reset(self, env):
     """Resets the internal state of the task."""
     self._env = env
-    return
+    self.last_base_pos = env.robot.GetBasePosition()
+    self.current_base_pos = self.last_base_pos
 
   def update(self, env):
     """Updates the internal state of the task."""
-    del env
-    return
+    self.last_base_pos = self.current_base_pos
+    self.current_base_pos = env.robot.GetBasePosition()
 
   def done(self, env):
     """Checks if the episode is over."""
@@ -50,5 +50,4 @@ class DefaultTask(object):
   def reward(self, env):
     """Get the reward without side effects."""
     del env
-    return 1
-
+    return self.current_base_pos[0] - self.last_base_pos[0]

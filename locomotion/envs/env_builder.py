@@ -28,7 +28,7 @@ from locomotion.envs.env_wrappers import observation_dictionary_to_array_wrapper
 from locomotion.envs.env_wrappers import trajectory_generator_wrapper_env
 from locomotion.envs.env_wrappers import simple_openloop
 from locomotion.envs.env_wrappers import imitation_task
-from locomotion.envs.env_wrappers import default_task
+from locomotion.envs.env_wrappers import simple_forward_task
 from locomotion.envs.sensors import environment_sensors
 from locomotion.envs.sensors import sensor_wrappers
 from locomotion.envs.sensors import robot_sensors
@@ -57,11 +57,12 @@ def build_regular_env(robot_class,
       simulation_parameters=sim_params)
 
   sensors = [
+      robot_sensors.BaseDisplacementSensor(),
       robot_sensors.IMUSensor(),
       robot_sensors.MotorAngleSensor(num_motors=a1.NUM_MOTORS),
   ]
 
-  task = default_task.DefaultTask()
+  task = simple_forward_task.SimpleForwardTask()
 
   env = locomotion_gym_env.LocomotionGymEnv(gym_config=gym_config,
                                             robot_class=robot_class,
