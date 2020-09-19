@@ -43,9 +43,15 @@ class SimpleForwardTask(object):
     self.current_base_pos = env.robot.GetBasePosition()
 
   def done(self, env):
-    """Checks if the episode is over."""
-    del env
-    return False
+    """Checks if the episode is over.
+
+       If the robot base becomes unstable (based on orientation), the episode
+       terminates early.
+    """
+    rot_quat = env.robot.GetBaseOrientation()
+    rot_mat = env.pybullet_client.getMatrixFromQuaternion(rot_quat)
+    return rot_mat[-1] > 0.85
+
 
   def reward(self, env):
     """Get the reward without side effects."""
