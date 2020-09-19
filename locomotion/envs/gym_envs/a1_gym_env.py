@@ -16,6 +16,8 @@ class A1GymEnv(gym.Env):
         motor_control_mode=robot_config.MotorControlMode.POSITION,
         enable_rendering=False,
         on_rack=False)
+    self.observation_space = self._env.observation_space
+    self.action_space = self._env.action_space
 
   def step(self, action):
     return self._env.step(action)
@@ -28,3 +30,6 @@ class A1GymEnv(gym.Env):
 
   def render(self, mode):
     return self._env.render(mode)
+
+  def __getattr__(self, attr):
+    return getattr(self._env, attr)
