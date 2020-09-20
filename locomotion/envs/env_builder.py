@@ -41,7 +41,8 @@ from locomotion.robots import robot_config
 def build_regular_env(robot_class,
                       motor_control_mode,
                       enable_rendering=False,
-                      on_rack=False):
+                      on_rack=False,
+                      action_limit=[0.75, 0.75, 0.75]):
 
   sim_params = locomotion_gym_config.SimulationParameters()
   sim_params.enable_rendering = enable_rendering
@@ -81,7 +82,7 @@ def build_regular_env(robot_class,
       env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(
           env,
           trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(
-              action_limit=0.75))
+              action_limit=action_limit))
   return env
 
 

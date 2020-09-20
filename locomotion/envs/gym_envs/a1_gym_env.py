@@ -10,12 +10,16 @@ class A1GymEnv(gym.Env):
   """A1 environment that supports the gym interface."""
   metadata = {'render.modes': ['rgb_array']}
 
-  def __init__(self):
+  def __init__(self,
+               action_limit=[0.75, 0.75, 0.75],
+               render=False,
+               on_rack=False):
     self._env = env_builder.build_regular_env(
         a1.A1,
         motor_control_mode=robot_config.MotorControlMode.POSITION,
-        enable_rendering=False,
-        on_rack=False)
+        enable_rendering=render,
+        action_limit=action_limit,
+        on_rack=on_rack)
     self.observation_space = self._env.observation_space
     self.action_space = self._env.action_space
 

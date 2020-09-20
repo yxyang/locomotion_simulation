@@ -102,9 +102,12 @@ class LaikagoPoseOffsetGenerator(object):
       init_abduction=laikago_pose_utils.LAIKAGO_DEFAULT_ABDUCTION_ANGLE,
       init_hip=laikago_pose_utils.LAIKAGO_DEFAULT_HIP_ANGLE,
       init_knee=laikago_pose_utils.LAIKAGO_DEFAULT_KNEE_ANGLE,
-      action_limit=0.5,
+      action_limit=[0.5, 0.5, 0.5],
       ):
-    """Initializes the controller."""
+    """Initializes the controller.
+    Args:
+      action_limit: a tuple of [limit_abduction, limit_hip, limit_knee]
+    """
     self._pose = np.array(
         attr.astuple(
             laikago_pose_utils.LaikagoPose(
@@ -120,7 +123,7 @@ class LaikagoPoseOffsetGenerator(object):
                 abduction_angle_3=init_abduction,
                 hip_angle_3=init_hip,
                 knee_angle_3=init_knee)))
-    action_high = np.array([action_limit] * 12)
+    action_high = np.hstack([action_limit] * 4)
     self.action_space = spaces.Box(-action_high, action_high, dtype=np.float32)
 
   def reset(self):

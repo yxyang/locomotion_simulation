@@ -36,7 +36,9 @@ def main(_):
 
   env.reset()
   for t in tqdm(range(1000)):
-    obs, rew, done, _ = env.step(env.action_space.sample() * 0.2)
+    obs, rew, done, _ = env.step(env.action_space.sample() * 0)
+    if done:
+      break
 
 
 if __name__ == "__main__":
