@@ -36,6 +36,17 @@ import gym
 env = gym.make('locomotion:A1GymEnv-v1')
 ```
 
+Note that the pybullet rendering is slightly different from Mujoco. To enable GUI rendering and visualize the training process, you can call:
+
+```python
+import gym
+env = gym.make('locomotion:A1GymEnv-v1', render=True)
+```
+
+which will pop up the standard pybullet renderer.
+
+And you can always call env.render(mode='rgb_array') to generate frames.
+
 ## Credits
 
 The codebase is derived from the Laikago simulation environment in the [motion_imitation](https://github.com/google-research/motion_imitation) project.
