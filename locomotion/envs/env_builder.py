@@ -42,7 +42,8 @@ def build_regular_env(robot_class,
                       motor_control_mode,
                       enable_rendering=False,
                       on_rack=False,
-                      action_limit=[0.75, 0.75, 0.75]):
+                      action_limit=[0.75, 0.75, 0.75],
+                      wrap_trajectory_generator=True):
 
   sim_params = locomotion_gym_config.SimulationParameters()
   sim_params.enable_rendering = enable_rendering
@@ -72,7 +73,8 @@ def build_regular_env(robot_class,
 
   env = observation_dictionary_to_array_wrapper.ObservationDictionaryToArrayWrapper(
       env)
-  if motor_control_mode == robot_config.MotorControlMode.POSITION:
+  if (motor_control_mode
+      == robot_config.MotorControlMode.POSITION) and wrap_trajectory_generator:
     if robot_class == laikago.Laikago:
       env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(
           env,
