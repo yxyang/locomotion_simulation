@@ -12,7 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# pytype: disable=attribute-error
 
+from absl import logging
 from io import BytesIO
 import os
 import sys
@@ -22,18 +24,16 @@ currentdir = os.path.dirname(
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
-import ctypes
 import math
-import os
 import re
 import numpy as np
 import pybullet as pyb  # pytype: disable=import-error
 import lcm
 import threading
+import time
 
 from locomotion.robots import laikago_pose_utils
-from locomotion.robots import laikago_constants
-from locomotion.robots import laikago_motor
+from locomotion.robots import a1
 from locomotion.robots import minitaur
 from locomotion.robots import robot_config
 from locomotion.robots.unitree_legged_sdk import comm
@@ -74,12 +74,15 @@ _DEFAULT_HIP_POSITIONS = (
     (-0.21, 0.1157, 0),
 )
 
-ABDUCTION_P_GAIN = 5.0
+ABDUCTION_P_GAIN = 100.0
 ABDUCTION_D_GAIN = 1.0
-HIP_P_GAIN = 5.0
-HIP_D_GAIN = 1.0
-KNEE_P_GAIN = 5.0
-KNEE_D_GAIN = 1.0
+HIP_P_GAIN = 100.0
+HIP_D_GAIN = 2.0
+KNEE_P_GAIN = 100.0
+KNEE_D_GAIN = 2.0
+
+COMMAND_CHANNEL_NAME ='LCM_Low_Cmd'
+STATE_CHANNEL_NAME ='LCM_Low_State'
 
 # Bases on the readings from Laikago's default pose.
 INIT_MOTOR_ANGLES = np.array([
@@ -100,8 +103,8 @@ _BODY_B_FIELD_NUMBER = 2
 _LINK_A_FIELD_NUMBER = 3
 
 
-class A1(minitaur.Minitaur):
-  """A simulation for the Laikago robot."""
+class A1Robot(minitaur.Minitaur):
+  """Interface for real A1 robot."""
 
   ACTION_CONFIG = [
       locomotion_gym_config.ScalarField(name="FR_hip_motor",
@@ -144,64 +147,63 @@ class A1(minitaur.Minitaur):
 
   def __init__(self,
                pybullet_client,
-               urdf_filename=URDF_FILENAME,
-               enable_clip_motor_commands=True,
                time_step=0.001,
                action_repeat=33,
+               enable_action_filter=False,
+               enable_action_interpolation=False,
                sensors=None,
-               control_latency=0.002,
-               on_rack=False,
-               enable_action_interpolation=True,
-               enable_action_filter=True,
-               motor_control_mode=None,
-               reset_time=-1,
-               allow_knee_contact=False,
-               command_channel_name='LCM_Low_Cmd',
-               state_channel_name='LCM_Low_State'):
-    # Initialize pd gain matrix
-    self.motor_kps = np.array([ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN] * 4)
-    self.motor_kds = np.array([ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN] * 4)
+               motor_control_mode=robot_config.MotorControlMode.POSITION,
+               **kwargs):
+    # Robot state variables
+    self._base_position = None
+    self._base_orientation = None
+    self._raw_state = None
+    self._motor_angles = None
+    self._motor_velocities = None
 
     # Initiate LCM channel for robot state and actions
     self.lc = lcm.LCM()
-    self._command_channel_name = command_channel_name
-    self._state_channel_name = state_channel_name
-    self._state_channel = self.lc.subscribe(state_channel_name,
-                                            self.ReceiveObservation)
-
-    # Robot state variables
-    self._motor_angles = None
-    self._base_orientation = None
-    self._raw_state = None
+    self._command_channel_name = COMMAND_CHANNEL_NAME
+    self._state_channel_name = STATE_CHANNEL_NAME
+    self._state_channel = self.lc.subscribe(STATE_CHANNEL_NAME,
+                                            self.ReceiveObservationAsync)
 
     self._is_alive = True
-    self._SendZeroAction()
     self.subscribe_thread = threading.Thread(target=self._LCMSubscribeLoop,
                                              args=())
     self.subscribe_thread.start()
+    while self._motor_angles is None:
+      logging.info("Robot sensor reading not ready yet, sleep for 1 second...")
+      time.sleep(1)
+
+    # Robot settings
+    self._pybullet_client = pybullet_client
+    self._time_step = time_step
+    self._action_repeat = action_repeat
+    self._control_time_step = self._action_repeat * self._time_step
+    self._enable_action_filter = enable_action_filter
+    if self._enable_action_filter:
+      self._action_filter = self._BuildActionFilter()
+    self.SetAllSensors(sensors if sensors is not None else list())
+    self._enable_action_interpolation = enable_action_interpolation
+    self._motor_control_mode = motor_control_mode
+    self._state_action_counter = 0
+    self._step_counter = 0
+    self._is_safe = True
+
+    # Initialize pd gain vector
+    self.motor_kps = np.array([ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN] * 4)
+    self.motor_kds = np.array([ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN] * 4)
 
   def _LCMSubscribeLoop(self):
     while self._is_alive:
       self.lc.handle_timeout(100)
 
-  def _SendZeroAction(self):
-    """Sends zero action to the robot.
+  def ReceiveObservation(self):
+    "Synchronous ReceiveObservation is not supported in A1, so changging it to noop instead."
+    pass
 
-    This function is required to get initial sensor reading from the robot.
-    Otherwise, the lcm server will return all-zero.
-    """
-    command = comm.LowCmd()
-    command.levelFlag = 0xff
-    for motor_id in range(NUM_MOTORS):
-      command.motorCmd[motor_id].mode = 0x00
-      command.motorCmd[motor_id].q = 0
-      command.motorCmd[motor_id].Kp = 0
-      command.motorCmd[motor_id].dq = 0
-      command.motorCmd[motor_id].Kd = 0
-      command.motorCmd[motor_id].tau = 0
-    self.lc.publish(self._command_channel_name, command)
-
-  def ReceiveObservation(self, channel, data):
+  def ReceiveObservationAsync(self, channel, data):
     """Receive the observation from sensors.
 
     This function is called once per step. The observations are only updated
@@ -216,8 +218,29 @@ class A1(minitaur.Minitaur):
     self._motor_velocities = [motor.dq for motor in state.motorState[:12]]
     self._raw_state = state
 
-  def GetMotorAngles(self):
+  def GetTrueMotorAngles(self):
     return self._motor_angles
+
+  def GetMotorAngles(self):
+    return minitaur.MapToMinusPiToPi(self._motor_angles)
+
+  def GetMotorVelocities(self):
+    return self._motor_velocities
+
+  def GetBasePosition(self):
+    return self._base_position
+
+  def GetBaseRollPitchYaw(self):
+    return self._pybullet_client.getEulerFromQuaternion(self._base_orientation)
+
+  def GetTrueBaseRollPitchYaw(self):
+    return self._pybullet_client.getEulerFromQuaternion(self._base_orientation)
+
+  def GetBaseRollPitchYawRate(self):
+    return (0., 0., 0.)
+
+  def GetTrueBaseRollPitchYawRate(self):
+    return (0., 0., 0.)
 
   def ApplyAction(self, motor_commands, motor_control_mode=None):
     """Clips and then apply the motor commands using the motor model.
@@ -227,6 +250,9 @@ class A1(minitaur.Minitaur):
         or motor pwms (for Minitaur only).
       motor_control_mode: A MotorControlMode enum.
     """
+    if motor_control_mode is None:
+      motor_control_mode = self._motor_control_mode
+
     command = comm.LowCmd()
     command.levelFlag = 0xff
 
@@ -255,9 +281,26 @@ class A1(minitaur.Minitaur):
     elif motor_control_mode == robot_config.MotorControlMode.HYBRID:
       raise NotImplementedError()
     else:
-      raise ValueError('Unknown motor control mode for A1 robot.')
+      raise ValueError('Unknown motor control mode for A1 robot: {}.'.format(motor_control_mode))
 
     self.lc.publish(self._command_channel_name, command)
+
+  def Reset(self, reload_urdf=True, default_motor_angles=None, reset_time=3.0):
+    """Reset the robot to default motor angles."""
+    logging.warning("about to reset the robot, make sure the robot is hang-up.")
+    if not default_motor_angles:
+      default_motor_angles = a1.INIT_MOTOR_ANGLES
+    current_motor_angles = self.GetMotorAngles()
+    for t in np.arange(0, reset_time, self._control_time_step):
+      blend_ratio = t / reset_time
+      action = blend_ratio * default_motor_angles + (1 - blend_ratio) * current_motor_angles
+      self.ApplyAction(action, robot_config.MotorControlMode.POSITION)
+
+    if self._enable_action_filter:
+      self._ResetActionFilter()
+
+    self._state_action_counter = 0
+    self._step_counter = 0
 
   def Terminate(self):
     self._is_alive = False

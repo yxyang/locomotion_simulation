@@ -25,22 +25,24 @@ def main(_):
   print("Make sure the robot is hang on rack before proceeding.")
   input("Press enter to continue...")
   # Construct sim env and real robot
-  env = env_builder.build_regular_env(
+  sim_env = env_builder.build_regular_env(
       robot_class=a1.A1,
       motor_control_mode=robot_config.MotorControlMode.POSITION,
       on_rack=True,
       enable_rendering=True,
       wrap_trajectory_generator=False)
-  robot = a1_robot.A1(pybullet_client=None)
-  while not robot.GetMotorAngles():
-    print("Robot sensors not ready, sleep for 1s...")
-    time.sleep(1)
+  real_env = env_builder.build_regular_env(
+      robot_class=a1_robot.A1Robot,
+      motor_control_mode=robot_config.MotorControlMode.POSITION,
+      on_rack=False,
+      enable_rendering=False,
+      wrap_trajectory_generator=False)
 
   # Add debug sliders
-  action_low, action_high = env.action_space.low, env.action_space.high
+  action_low, action_high = sim_env.action_space.low, sim_env.action_space.high
   dim_action = action_low.shape[0]
   action_selector_ids = []
-  robot_motor_angles = robot.GetMotorAngles()
+  robot_motor_angles = real_env.robot.GetMotorAngles()
 
   for dim in range(dim_action):
     action_selector_id = p.addUserDebugParameter(
@@ -55,13 +57,13 @@ def main(_):
     # Get user action input
     action = np.zeros(dim_action)
     for dim in range(dim_action):
-      action[dim] = env.pybullet_client.readUserDebugParameter(
+      action[dim] = sim_env.pybullet_client.readUserDebugParameter(
           action_selector_ids[dim])
 
-    robot.ApplyAction(action, robot_config.MotorControlMode.POSITION)
-    env.step(action)
+    real_env.step(action)
+    sim_env.step(action)
 
-  robot.Terminate()
+  real_env.Terminate()
 
 
 if __name__ == '__main__':

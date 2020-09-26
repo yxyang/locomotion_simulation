@@ -28,7 +28,7 @@ def main(_):
   input("Press enter to continue...")
 
   # Construct sim env and real robot
-  robot = a1_robot.A1(pybullet_client=None)
+  robot = a1_robot.A1Robot(pybullet_client=None)
   while not robot.GetMotorAngles():
     print("Robot sensors not ready, sleep for 1s...")
     time.sleep(1)
@@ -36,18 +36,16 @@ def main(_):
   # Move the motors slowly to initial position
   current_motor_angle = np.array(robot.GetMotorAngles())
   desired_motor_angle = np.array([0., 0.9, -1.8] * 4)
-  print(current_motor_angle)
 
-  for t in tqdm(range(200)):
-    blend_ratio = np.minimum(t / 100., 1)
-    action = blend_ratio * current_motor_angle + (
-        1 - blend_ratio) * desired_motor_angle
+  for t in tqdm(range(300)):
+    blend_ratio = np.minimum(t / 200., 1)
+    action = (1 - blend_ratio
+              ) * current_motor_angle + blend_ratio * desired_motor_angle
     robot.ApplyAction(action, robot_config.MotorControlMode.POSITION)
     time.sleep(0.01)
-  print(robot.GetMotorAngles())
 
   # Move the legs in a sinusoidal curve
-  for t in range(10000):
+  for t in range(1000):
     angle_hip = 0.9 + 0.2 * np.sin(2 * np.pi * FREQ * 0.01 * t)
     angle_calf = -2 * angle_hip
     action = np.array([0., angle_hip, angle_calf] * 4)
