@@ -2,11 +2,9 @@
 
 from absl import app
 from absl import flags
-from absl import logging
 import numpy as np
 from tqdm import tqdm
 import pybullet as p  # pytype: disable=import-error
-import os
 
 from locomotion.envs import env_builder
 from locomotion.robots import a1
@@ -42,7 +40,6 @@ def main(_):
   action_median = (action_low + action_high) / 2.
   dim_action = action_low.shape[0]
   action_selector_ids = []
-
   for dim in range(dim_action):
     action_selector_id = p.addUserDebugParameter(paramName='dim{}'.format(dim),
                                                  rangeMin=action_low[dim],

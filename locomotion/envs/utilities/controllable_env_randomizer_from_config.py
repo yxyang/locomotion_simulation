@@ -12,24 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""A controllable environment randomizer that randomizes physical parameters from config."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+"""A controllable env randomizer that randomizes physical params from config."""
 from absl import logging
-import os
-import sys
-import inspect
-currentdir = os.path.dirname(
-    os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-sys.path.insert(0, parentdir)
-
 import copy
 import functools
-
 import numpy as np
 
 from locomotion.envs.utilities import controllable_env_randomizer_base
@@ -66,8 +52,6 @@ class ControllableEnvRandomizerFromConfig(
 
     self._np_random = np.random.RandomState()
 
-    return
-
   @property
   def suspend_randomization(self):
     return self._suspend_randomization
@@ -86,7 +70,7 @@ class ControllableEnvRandomizerFromConfig(
     self._randomization_seed = seed
 
   def _check_all_randomization_parameter_in_rejection_range(self):
-    """Check if current randomized parameters are in the region to be rejected."""
+    """Check if current parameters are in the region to be rejected."""
 
     for param_name, reject_random_range in sorted(
         self._rejection_param_range.items()):
@@ -99,7 +83,7 @@ class ControllableEnvRandomizerFromConfig(
   def randomize_env(self, env):
     """Randomize various physical properties of the environment.
 
-    It randomizes the physical parameters according to the input configuration.
+    It randomizes the physical parameters according to input configuration.
 
     Args:
       env: A minitaur gym environment.
@@ -110,7 +94,7 @@ class ControllableEnvRandomizerFromConfig(
       if self._randomization_seed is not None:
         self._np_random.seed(self._randomization_seed)
 
-      self._randomization_function_dict = self._build_randomization_function_dict(
+      self._randomization_function_dict = self._build_randomization_func_dict(
           env)
 
       self._rejection_param_range = {}
@@ -141,7 +125,7 @@ class ControllableEnvRandomizerFromConfig(
                                             randomization_parameters):
     self._randomization_param_value_dict = randomization_parameters
     # Run the randomization function to propgate the parameters.
-    self._randomization_function_dict = self._build_randomization_function_dict(
+    self._randomization_function_dict = self._build_randomization_func_dict(
         env)
     for param_name, random_range in self._randomization_param_dict.items():
       self._randomization_function_dict[param_name](
@@ -157,7 +141,7 @@ class ControllableEnvRandomizerFromConfig(
     else:
       return None
 
-  def _build_randomization_function_dict(self, env):
+  def _build_randomization_func_dict(self, env):
     func_dict = {}
     robot = self._get_robot_from_env(env)
     func_dict["mass"] = functools.partial(self._randomize_masses,

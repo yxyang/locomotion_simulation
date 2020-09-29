@@ -13,21 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # pytype: disable=attribute-error
+"""Real robot interface of A1 robot."""
 
 from absl import logging
 from io import BytesIO
-import os
-import sys
-import inspect
-currentdir = os.path.dirname(
-    os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-sys.path.insert(0, parentdir)
-
 import math
 import re
 import numpy as np
-import pybullet as pyb  # pytype: disable=import-error
 import lcm
 import threading
 import time
@@ -81,8 +73,8 @@ HIP_D_GAIN = 2.0
 KNEE_P_GAIN = 100.0
 KNEE_D_GAIN = 2.0
 
-COMMAND_CHANNEL_NAME ='LCM_Low_Cmd'
-STATE_CHANNEL_NAME ='LCM_Low_State'
+COMMAND_CHANNEL_NAME = 'LCM_Low_Cmd'
+STATE_CHANNEL_NAME = 'LCM_Low_State'
 
 # Bases on the readings from Laikago's default pose.
 INIT_MOTOR_ANGLES = np.array([
@@ -154,6 +146,8 @@ class A1Robot(minitaur.Minitaur):
                sensors=None,
                motor_control_mode=robot_config.MotorControlMode.POSITION,
                **kwargs):
+    # pylint:disable=super-init-not-called
+    del kwargs  #unused
     # Robot state variables
     self._base_position = None
     self._base_orientation = None
@@ -200,7 +194,11 @@ class A1Robot(minitaur.Minitaur):
       self.lc.handle_timeout(100)
 
   def ReceiveObservation(self):
-    "Synchronous ReceiveObservation is not supported in A1, so changging it to noop instead."
+    """Receives observation from robot.
+
+    Synchronous ReceiveObservation is not supported in A1,
+    so changging it to noop instead.
+    """
     pass
 
   def ReceiveObservationAsync(self, channel, data):
@@ -209,6 +207,7 @@ class A1Robot(minitaur.Minitaur):
     This function is called once per step. The observations are only updated
     when this function is called.
     """
+    del channel  # unused
     stream = BytesIO(data)
     state = comm.LowState()
     stream.readinto(state)  # pytype: disable=wrong-arg-types
@@ -254,7 +253,7 @@ class A1Robot(minitaur.Minitaur):
       motor_control_mode = self._motor_control_mode
 
     command = comm.LowCmd()
-    command.levelFlag = 0xff
+    command.levelFlag = 0xff # pylint:disable=invalid-name
 
     if motor_control_mode == robot_config.MotorControlMode.POSITION:
       for motor_id in range(NUM_MOTORS):
@@ -281,19 +280,22 @@ class A1Robot(minitaur.Minitaur):
     elif motor_control_mode == robot_config.MotorControlMode.HYBRID:
       raise NotImplementedError()
     else:
-      raise ValueError('Unknown motor control mode for A1 robot: {}.'.format(motor_control_mode))
+      raise ValueError('Unknown motor control mode for A1 robot: {}.'.format(
+          motor_control_mode))
 
     self.lc.publish(self._command_channel_name, command)
 
   def Reset(self, reload_urdf=True, default_motor_angles=None, reset_time=3.0):
     """Reset the robot to default motor angles."""
-    logging.warning("about to reset the robot, make sure the robot is hang-up.")
+    logging.warning(
+        "about to reset the robot, make sure the robot is hang-up.")
     if not default_motor_angles:
       default_motor_angles = a1.INIT_MOTOR_ANGLES
     current_motor_angles = self.GetMotorAngles()
     for t in np.arange(0, reset_time, self._control_time_step):
       blend_ratio = t / reset_time
-      action = blend_ratio * default_motor_angles + (1 - blend_ratio) * current_motor_angles
+      action = blend_ratio * default_motor_angles + (
+          1 - blend_ratio) * current_motor_angles
       self.ApplyAction(action, robot_config.MotorControlMode.POSITION)
 
     if self._enable_action_filter:

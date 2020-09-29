@@ -13,20 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import sys
-import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-sys.path.insert(0, parentdir)
-
-
+# import os
+# import sys
+# import inspect
+# currentdir = os.path.dirname(
+#     os.path.abspath(inspect.getfile(inspect.currentframe())))
+# parentdir = os.path.dirname(os.path.dirname(currentdir))
+# sys.path.insert(0, parentdir)
 """Pybullet simulation of a Laikago robot."""
 import math
-import os
 import re
 import numpy as np
-import pybullet as pyb # pytype: disable=import-error
+import pybullet as pyb  # pytype: disable=import-error
 
 from locomotion.robots import laikago_pose_utils
 from locomotion.robots import laikago_constants
@@ -97,26 +95,51 @@ _LINK_A_FIELD_NUMBER = 3
 UPPER_BOUND = 6.28318548203
 LOWER_BOUND = -6.28318548203
 
+
 class Laikago(minitaur.Minitaur):
   """A simulation for the Laikago robot."""
 
   ACTION_CONFIG = [
-      locomotion_gym_config.ScalarField(name="motor_angle_0", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_1", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_2", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_3", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_4", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_5", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_6", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_7", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_8", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_9", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_10", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND),
-      locomotion_gym_config.ScalarField(name="motor_angle_11", upper_bound=UPPER_BOUND, lower_bound=LOWER_BOUND)
+      locomotion_gym_config.ScalarField(name="motor_angle_0",
+                                        upper_bound=UPPER_BOUND,
+                                        lower_bound=LOWER_BOUND),
+      locomotion_gym_config.ScalarField(name="motor_angle_1",
+                                        upper_bound=UPPER_BOUND,
+                                        lower_bound=LOWER_BOUND),
+      locomotion_gym_config.ScalarField(name="motor_angle_2",
+                                        upper_bound=UPPER_BOUND,
+                                        lower_bound=LOWER_BOUND),
+      locomotion_gym_config.ScalarField(name="motor_angle_3",
+                                        upper_bound=UPPER_BOUND,
+                                        lower_bound=LOWER_BOUND),
+      locomotion_gym_config.ScalarField(name="motor_angle_4",
+                                        upper_bound=UPPER_BOUND,
+                                        lower_bound=LOWER_BOUND),
+      locomotion_gym_config.ScalarField(name="motor_angle_5",
+                                        upper_bound=UPPER_BOUND,
+                                        lower_bound=LOWER_BOUND),
+      locomotion_gym_config.ScalarField(name="motor_angle_6",
+                                        upper_bound=UPPER_BOUND,
+                                        lower_bound=LOWER_BOUND),
+      locomotion_gym_config.ScalarField(name="motor_angle_7",
+                                        upper_bound=UPPER_BOUND,
+                                        lower_bound=LOWER_BOUND),
+      locomotion_gym_config.ScalarField(name="motor_angle_8",
+                                        upper_bound=UPPER_BOUND,
+                                        lower_bound=LOWER_BOUND),
+      locomotion_gym_config.ScalarField(name="motor_angle_9",
+                                        upper_bound=UPPER_BOUND,
+                                        lower_bound=LOWER_BOUND),
+      locomotion_gym_config.ScalarField(name="motor_angle_10",
+                                        upper_bound=UPPER_BOUND,
+                                        lower_bound=LOWER_BOUND),
+      locomotion_gym_config.ScalarField(name="motor_angle_11",
+                                        upper_bound=UPPER_BOUND,
+                                        lower_bound=LOWER_BOUND)
   ]
 
-
-  def __init__(self,
+  def __init__(
+      self,
       pybullet_client,
       urdf_filename=URDF_FILENAME,
       enable_clip_motor_commands=True,
@@ -127,24 +150,24 @@ class Laikago(minitaur.Minitaur):
       on_rack=False,
       enable_action_interpolation=True,
       enable_action_filter=True,
-      motor_control_mode = None,
-      reset_time = -1,
-      allow_knee_contact = False,
+      motor_control_mode=None,
+      reset_time=-1,
+      allow_knee_contact=False,
   ):
     self._urdf_filename = urdf_filename
     self._allow_knee_contact = allow_knee_contact
     self._enable_clip_motor_commands = enable_clip_motor_commands
 
-    motor_kp = [ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN,
-                ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN,
-                ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN,
-                ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN]
-    motor_kd = [ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN,
-                ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN,
-                ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN,
-                ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN]
-
-    motor_torque_limits = None # jp hack
+    motor_kp = [
+        ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN, ABDUCTION_P_GAIN,
+        HIP_P_GAIN, KNEE_P_GAIN, ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN,
+        ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN
+    ]
+    motor_kd = [
+        ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN, ABDUCTION_D_GAIN,
+        HIP_D_GAIN, KNEE_D_GAIN, ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN,
+        ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN
+    ]
 
     super(Laikago, self).__init__(
         pybullet_client=pybullet_client,
@@ -164,10 +187,7 @@ class Laikago(minitaur.Minitaur):
         on_rack=on_rack,
         enable_action_interpolation=enable_action_interpolation,
         enable_action_filter=enable_action_filter,
-        reset_time = reset_time
-        )
-
-    return
+        reset_time=reset_time)
 
   def _LoadRobotURDF(self):
     laikago_urdf_path = self.GetURDFFile()
@@ -245,8 +265,10 @@ class Laikago(minitaur.Minitaur):
       else:
         raise ValueError("The name %s is not recognized as a motor joint." %
                          name)
-      self._pybullet_client.resetJointState(
-          self.quadruped, self._joint_name_to_id[name], angle, targetVelocity=0)
+      self._pybullet_client.resetJointState(self.quadruped,
+                                            self._joint_name_to_id[name],
+                                            angle,
+                                            targetVelocity=0)
 
   def GetURDFFile(self):
     return self._urdf_filename
@@ -291,8 +313,6 @@ class Laikago(minitaur.Minitaur):
     self._foot_link_ids.sort()
     self._leg_link_ids.sort()
 
-    return
-
   def _GetMotorNames(self):
     return MOTOR_NAMES
 
@@ -307,7 +327,8 @@ class Laikago(minitaur.Minitaur):
     # and belly towards y axis. The following transformation is to transform
     # the Laikago initial orientation to our commonly used orientation: heading
     # towards -x direction, and z axis is the up direction.
-    init_orientation = pyb.getQuaternionFromEuler([math.pi / 2.0, 0, math.pi / 2.0])
+    init_orientation = pyb.getQuaternionFromEuler(
+        [math.pi / 2.0, 0, math.pi / 2.0])
     return init_orientation
 
   def GetDefaultInitPosition(self):
@@ -335,7 +356,6 @@ class Laikago(minitaur.Minitaur):
       motor_commands = self._ClipMotorCommands(motor_commands)
 
     super(Laikago, self).ApplyAction(motor_commands, motor_control_mode)
-    return
 
   def _ClipMotorCommands(self, motor_commands):
     """Clips motor commands.
@@ -360,4 +380,3 @@ class Laikago(minitaur.Minitaur):
   def GetConstants(cls):
     del cls
     return laikago_constants
-

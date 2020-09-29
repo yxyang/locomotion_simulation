@@ -13,15 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """This file implements the locomotion gym env."""
-
-import os
-import sys
-import inspect
-currentdir = os.path.dirname(
-    os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-sys.path.insert(0, parentdir)
-
 import collections
 import time
 import gym
@@ -146,7 +137,8 @@ class LocomotionGymEnv(gym.Env):
 
   def _build_action_space(self):
     """Builds action space based on motor control mode."""
-    if self._gym_config.simulation_parameters.motor_control_mode == robot_config.MotorControlMode.HYBRID:
+    motor_mode = self._gym_config.simulation_parameters.motor_control_mode
+    if motor_mode == robot_config.MotorControlMode.HYBRID:
       action_upper_bound = []
       action_lower_bound = []
       action_config = self._robot_class.ACTION_CONFIG
@@ -156,12 +148,14 @@ class LocomotionGymEnv(gym.Env):
       self.action_space = spaces.Box(np.array(action_lower_bound),
                                      np.array(action_upper_bound),
                                      dtype=np.float32)
-    elif self._gym_config.simulation_parameters.motor_control_mode == robot_config.MotorControlMode.TORQUE:
-      torque_limits = self._robot._motor_torque_limits
+    elif motor_mode == robot_config.MotorControlMode.TORQUE:
+      # TODO (yuxiangy): figure out the torque limits of robots.
+      torque_limits = np.array([100] * len(self._robot_class.ACTION_CONFIG))
       self.action_space = spaces.Box(-torque_limits,
                                      torque_limits,
                                      dtype=np.float32)
     else:
+      # Position mode
       action_upper_bound = []
       action_lower_bound = []
       action_config = self._robot_class.ACTION_CONFIG

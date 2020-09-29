@@ -13,21 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import sys
-import inspect
-currentdir = os.path.dirname(
-    os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-sys.path.insert(0, parentdir)
 """Pybullet simulation of a Laikago robot."""
 import math
-import os
 import re
 import numpy as np
 import pybullet as pyb  # pytype: disable=import-error
 
-from locomotion.robots import laikago_pose_utils
 from locomotion.robots import laikago_constants
 from locomotion.robots import laikago_motor
 from locomotion.robots import minitaur
@@ -51,7 +42,7 @@ MOTOR_NAMES = [
     "RL_lower_joint",
 ]
 INIT_RACK_POSITION = [0, 0, 1]
-INIT_POSITION = [0, 0, 0.48]
+INIT_POSITION = [0, 0, 0.32]
 JOINT_DIRECTIONS = np.ones(12)
 HIP_JOINT_OFFSET = 0.0
 UPPER_LEG_JOINT_OFFSET = 0.0
@@ -78,9 +69,9 @@ KNEE_D_GAIN = 2.0
 
 # Bases on the readings from Laikago's default pose.
 INIT_MOTOR_ANGLES = np.array([
-    laikago_pose_utils.LAIKAGO_DEFAULT_ABDUCTION_ANGLE,
-    laikago_pose_utils.LAIKAGO_DEFAULT_HIP_ANGLE,
-    laikago_pose_utils.LAIKAGO_DEFAULT_KNEE_ANGLE
+    0,
+    0.9,
+    -1.8
 ] * NUM_LEGS)
 
 HIP_NAME_PATTERN = re.compile(r"\w+_hip_\w+")
@@ -97,7 +88,10 @@ _LINK_A_FIELD_NUMBER = 3
 
 class A1(minitaur.Minitaur):
   """A simulation for the Laikago robot."""
-
+  MPC_BODY_MASS = 125 / 9.8
+  MPC_BODY_INERTIA = (0.07335, 0, 0, 0, 0.25068, 0, 0, 0, 0.25447)
+  MPC_BODY_HEIGHT = 0.31
+  MPC_VELOCITY_MULTIPLIER = 0.5
   ACTION_CONFIG = [
       locomotion_gym_config.ScalarField(name="FR_hip_motor",
                                         upper_bound=0.802851455917,
@@ -137,21 +131,20 @@ class A1(minitaur.Minitaur):
                                         lower_bound=-2.69653369433),
   ]
 
-
   def __init__(
       self,
       pybullet_client,
       urdf_filename=URDF_FILENAME,
-      enable_clip_motor_commands=True,
+      enable_clip_motor_commands=False,
       time_step=0.001,
-      action_repeat=33,
+      action_repeat=10,
       sensors=None,
       control_latency=0.002,
       on_rack=False,
       enable_action_interpolation=True,
-      enable_action_filter=True,
+      enable_action_filter=False,
       motor_control_mode=None,
-      reset_time=-1,
+      reset_time=1,
       allow_knee_contact=False,
   ):
     self._urdf_filename = urdf_filename
@@ -169,7 +162,6 @@ class A1(minitaur.Minitaur):
         ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN
     ]
 
-    motor_torque_limits = None  # jp hack
 
     super(A1, self).__init__(
         pybullet_client=pybullet_client,
@@ -192,21 +184,20 @@ class A1(minitaur.Minitaur):
         reset_time=reset_time)
 
   def _LoadRobotURDF(self):
-    laikago_urdf_path = self.GetURDFFile()
+    a1_urdf_path = self.GetURDFFile()
     if self._self_collision_enabled:
       self.quadruped = self._pybullet_client.loadURDF(
-          laikago_urdf_path,
+          a1_urdf_path,
           self._GetDefaultInitPosition(),
           self._GetDefaultInitOrientation(),
           flags=self._pybullet_client.URDF_USE_SELF_COLLISION)
     else:
       self.quadruped = self._pybullet_client.loadURDF(
-          laikago_urdf_path, self._GetDefaultInitPosition(),
+          a1_urdf_path, self._GetDefaultInitPosition(),
           self._GetDefaultInitOrientation())
 
   def _SettleDownForReset(self, default_motor_angles, reset_time):
     self.ReceiveObservation()
-
     if reset_time <= 0:
       return
 
@@ -214,6 +205,7 @@ class A1(minitaur.Minitaur):
       self._StepInternal(
           INIT_MOTOR_ANGLES,
           motor_control_mode=robot_config.MotorControlMode.POSITION)
+
     if default_motor_angles is not None:
       num_steps_to_reset = int(reset_time / self.time_step)
       for _ in range(num_steps_to_reset):
@@ -240,12 +232,6 @@ class A1(minitaur.Minitaur):
         continue
 
     return contacts
-
-  def ComputeJacobian(self, leg_id):
-    """Compute the Jacobian for a given leg."""
-    # Because of the default rotation in the Laikago URDF, we need to reorder
-    # the rows in the Jacobian matrix.
-    return super(A1, self).ComputeJacobian(leg_id)[(2, 0, 1), :]
 
   def ResetPose(self, add_constraint):
     del add_constraint
@@ -359,7 +345,6 @@ class A1(minitaur.Minitaur):
     """
     if self._enable_clip_motor_commands:
       motor_commands = self._ClipMotorCommands(motor_commands)
-
     super(A1, self).ApplyAction(motor_commands, motor_control_mode)
 
   def _ClipMotorCommands(self, motor_commands):

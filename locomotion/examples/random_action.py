@@ -2,8 +2,6 @@
 
 from absl import app
 from absl import flags
-from absl import logging
-import numpy as np
 from tqdm import tqdm
 
 from locomotion.envs import env_builder
@@ -35,8 +33,8 @@ def main(_):
                                       on_rack=FLAGS.on_rack)
 
   env.reset()
-  for t in tqdm(range(1000)):
-    obs, rew, done, _ = env.step(env.action_space.sample() * 0)
+  for _ in tqdm(range(1000)):
+    _, _, done, _ = env.step(env.action_space.sample())
     if done:
       break
 

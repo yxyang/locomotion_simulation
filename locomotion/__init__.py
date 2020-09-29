@@ -1,15 +1,16 @@
+"""Set up gym interface for locomotion environments."""
 import gym
 from gym.envs.registration import registry, make, spec
 
-def register(id, *args, **kvargs):
-  if id in registry.env_specs:
+def register(env_id, *args, **kvargs):
+  if env_id in registry.env_specs:
     return
   else:
-    return gym.envs.registration.register(id, *args, **kvargs)
+    return gym.envs.registration.register(env_id, *args, **kvargs)
 
 
 register(
-    id='A1GymEnv-v1',
+    env_id='A1GymEnv-v1',
     entry_point='locomotion.envs.gym_envs:A1GymEnv',
     max_episode_steps=2000,
     reward_threshold=2000.0,

@@ -15,3 +15,11 @@ repos:
     language: system
     types: [python]
     always_run: true
+  - id: pylint
+    name: pylint
+    entry: pylint
+    args: [locomotion]
+    pass_filenames: false
+    language: system
+    types: [python]
+    always_run: true

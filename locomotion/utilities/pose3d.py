@@ -12,9 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+"""Utilities for 3D pose conversion."""
 import math
-from absl import logging
 import numpy as np
 
 from pybullet_utils import transformations

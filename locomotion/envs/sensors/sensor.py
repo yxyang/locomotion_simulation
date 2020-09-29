@@ -24,9 +24,9 @@ import numpy as np
 import typing
 
 
-_ARRAY = typing.Iterable[float]
-_FLOAT_OR_ARRAY = typing.Union[float, _ARRAY]
-_DATATYPE_LIST = typing.Iterable[typing.Any]
+_ARRAY = typing.Iterable[float] # pylint: disable=invalid-name
+_FLOAT_OR_ARRAY = typing.Union[float, _ARRAY] # pylint: disable=invalid-name
+_DATATYPE_LIST = typing.Iterable[typing.Any] # pylint: disable=invalid-name
 
 
 class Sensor(object):
@@ -146,12 +146,12 @@ class BoxSpaceSensor(Sensor):
     self._shape = shape
     self._dtype = dtype
 
-    if isinstance(lower_bound, float) or isinstance(lower_bound, int):
+    if isinstance(lower_bound, (float, int)):
       self._lower_bound = np.full(shape, lower_bound, dtype=dtype)
     else:
       self._lower_bound = np.array(lower_bound)
 
-    if isinstance(upper_bound, float):
+    if isinstance(upper_bound, (float, int)):
       self._upper_bound = np.full(shape, upper_bound, dtype=dtype)
     else:
       self._upper_bound = np.array(upper_bound)

@@ -7,15 +7,11 @@ simultaneouly. Make sure to put the real robbot on rack before testing.
 """
 
 from absl import app
-from absl import flags
 from absl import logging
 import numpy as np
-import pybullet as p  # pytype: disable=import-error
 import time
 from tqdm import tqdm
 
-from locomotion.envs import env_builder
-from locomotion.robots import a1
 from locomotion.robots import a1_robot
 from locomotion.robots import robot_config
 
@@ -23,14 +19,14 @@ FREQ = 0.5
 
 
 def main(_):
-  print("WARNING: this code executes low-level controller on the robot.")
-  print("Make sure the robot is hang on rack before proceeding.")
+  logging.info("WARNING: this code executes low-level controller on the robot.")
+  logging.info("Make sure the robot is hang on rack before proceeding.")
   input("Press enter to continue...")
 
   # Construct sim env and real robot
   robot = a1_robot.A1Robot(pybullet_client=None)
   while not robot.GetMotorAngles():
-    print("Robot sensors not ready, sleep for 1s...")
+    logging.info("Robot sensors not ready, sleep for 1s...")
     time.sleep(1)
 
   # Move the motors slowly to initial position

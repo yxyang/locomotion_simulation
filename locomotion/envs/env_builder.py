@@ -12,27 +12,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import os
-import sys
-import inspect
-currentdir = os.path.dirname(
-    os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-sys.path.insert(0, parentdir)
-
+"""Utilities for building environments."""
 from locomotion.envs import locomotion_gym_env
 from locomotion.envs import locomotion_gym_config
-from locomotion.envs.env_wrappers import imitation_wrapper_env
-from locomotion.envs.env_wrappers import observation_dictionary_to_array_wrapper
+from locomotion.envs.env_wrappers import observation_dictionary_to_array_wrapper as obs_dict_to_array_wrapper
 from locomotion.envs.env_wrappers import trajectory_generator_wrapper_env
 from locomotion.envs.env_wrappers import simple_openloop
-from locomotion.envs.env_wrappers import imitation_task
 from locomotion.envs.env_wrappers import simple_forward_task
-from locomotion.envs.sensors import environment_sensors
-from locomotion.envs.sensors import sensor_wrappers
 from locomotion.envs.sensors import robot_sensors
-from locomotion.envs.utilities import controllable_env_randomizer_from_config
 from locomotion.robots import a1
 from locomotion.robots import laikago
 from locomotion.robots import robot_config
@@ -42,7 +29,7 @@ def build_regular_env(robot_class,
                       motor_control_mode,
                       enable_rendering=False,
                       on_rack=False,
-                      action_limit=[0.75, 0.75, 0.75],
+                      action_limit=(0.75, 0.75, 0.75),
                       wrap_trajectory_generator=True):
 
   sim_params = locomotion_gym_config.SimulationParameters()
@@ -71,7 +58,7 @@ def build_regular_env(robot_class,
                                             robot_sensors=sensors,
                                             task=task)
 
-  env = observation_dictionary_to_array_wrapper.ObservationDictionaryToArrayWrapper(
+  env = obs_dict_to_array_wrapper.ObservationDictionaryToArrayWrapper(
       env)
   if (motor_control_mode
       == robot_config.MotorControlMode.POSITION) and wrap_trajectory_generator:
@@ -79,76 +66,10 @@ def build_regular_env(robot_class,
       env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(
           env,
           trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(
-              action_limit=laikago.UPPER_BOUND))
+              action_limit=action_limit))
     elif robot_class == a1.A1:
       env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(
           env,
           trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(
               action_limit=action_limit))
-  return env
-
-
-def build_imitation_env(motion_files, num_parallel_envs, mode,
-                        enable_randomizer, enable_rendering):
-  assert len(motion_files) > 0
-
-  curriculum_episode_length_start = 20
-  curriculum_episode_length_end = 600
-
-  sim_params = locomotion_gym_config.SimulationParameters()
-  sim_params.enable_rendering = enable_rendering
-  sim_params.allow_knee_contact = True
-
-  gym_config = locomotion_gym_config.LocomotionGymConfig(
-      simulation_parameters=sim_params)
-
-  robot_class = laikago.Laikago
-
-  sensors = [
-      sensor_wrappers.HistoricSensorWrapper(
-          wrapped_sensor=robot_sensors.MotorAngleSensor(
-              num_motors=laikago.NUM_MOTORS),
-          num_history=3),
-      sensor_wrappers.HistoricSensorWrapper(
-          wrapped_sensor=robot_sensors.IMUSensor(), num_history=3),
-      sensor_wrappers.HistoricSensorWrapper(
-          wrapped_sensor=environment_sensors.LastActionSensor(
-              num_actions=laikago.NUM_MOTORS),
-          num_history=3)
-  ]
-
-  task = imitation_task.ImitationTask(ref_motion_filenames=motion_files,
-                                      enable_cycle_sync=True,
-                                      tar_frame_steps=[1, 2, 10, 30],
-                                      ref_state_init_prob=0.9,
-                                      warmup_time=0.25)
-
-  randomizers = []
-  if enable_randomizer:
-    randomizer = controllable_env_randomizer_from_config.ControllableEnvRandomizerFromConfig(
-        verbose=False)
-    randomizers.append(randomizer)
-
-  env = locomotion_gym_env.LocomotionGymEnv(gym_config=gym_config,
-                                            robot_class=robot_class,
-                                            env_randomizers=randomizers,
-                                            robot_sensors=sensors,
-                                            task=task)
-
-  env = observation_dictionary_to_array_wrapper.ObservationDictionaryToArrayWrapper(
-      env)
-  env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(
-      env,
-      trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(
-          action_limit=laikago.UPPER_BOUND))
-
-  if mode == "test":
-    curriculum_episode_length_start = curriculum_episode_length_end
-
-  env = imitation_wrapper_env.ImitationWrapperEnv(
-      env,
-      episode_length_start=curriculum_episode_length_start,
-      episode_length_end=curriculum_episode_length_end,
-      curriculum_steps=30000000,
-      num_parallel_envs=num_parallel_envs)
   return env

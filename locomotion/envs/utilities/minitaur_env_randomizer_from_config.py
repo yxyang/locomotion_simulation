@@ -21,13 +21,6 @@ from __future__ import division
 from __future__ import print_function
 
 from absl import logging
-import os
-import sys
-import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-sys.path.insert(0, parentdir)
-
 import functools
 import random
 import numpy as np
@@ -40,7 +33,6 @@ SIMULATION_TIME_STEP = 0.001
 
 class MinitaurEnvRandomizerFromConfig(env_randomizer_base.EnvRandomizerBase):
   """A randomizer that change the minitaur_gym_env during every reset."""
-
   def __init__(self, config=None):
     if config is None:
       config = "all_params"
@@ -78,12 +70,12 @@ class MinitaurEnvRandomizerFromConfig(env_randomizer_base.EnvRandomizerBase):
   def _build_randomization_function_dict(self, env):
     func_dict = {}
     robot = self._get_robot_from_env(env)
-    func_dict["mass"] = functools.partial(
-        self._randomize_masses, minitaur=robot)
-    func_dict["inertia"] = functools.partial(
-        self._randomize_inertia, minitaur=robot)
-    func_dict["latency"] = functools.partial(
-        self._randomize_latency, minitaur=robot)
+    func_dict["mass"] = functools.partial(self._randomize_masses,
+                                          minitaur=robot)
+    func_dict["inertia"] = functools.partial(self._randomize_inertia,
+                                             minitaur=robot)
+    func_dict["latency"] = functools.partial(self._randomize_latency,
+                                             minitaur=robot)
     func_dict["joint friction"] = functools.partial(
         self._randomize_joint_friction, minitaur=robot)
     func_dict["motor friction"] = functools.partial(
@@ -92,13 +84,13 @@ class MinitaurEnvRandomizerFromConfig(env_randomizer_base.EnvRandomizerBase):
         self._randomize_contact_restitution, minitaur=robot)
     func_dict["lateral friction"] = functools.partial(
         self._randomize_contact_friction, minitaur=robot)
-    func_dict["battery"] = functools.partial(
-        self._randomize_battery_level, minitaur=robot)
+    func_dict["battery"] = functools.partial(self._randomize_battery_level,
+                                             minitaur=robot)
     func_dict["motor strength"] = functools.partial(
         self._randomize_motor_strength, minitaur=robot)
     # Settinmg control step needs access to the environment.
-    func_dict["control step"] = functools.partial(
-        self._randomize_control_step, env=env)
+    func_dict["control step"] = functools.partial(self._randomize_control_step,
+                                                  env=env)
     return func_dict
 
   def _randomize_control_step(self, env, lower_bound, upper_bound):

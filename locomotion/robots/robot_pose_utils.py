@@ -15,20 +15,11 @@
 
 """This file implements the robot specific pose tools."""
 
-import os
-import sys
-import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-sys.path.insert(0, parentdir)
-
 import math
-
 import attr
 import numpy as np
 
 from locomotion.robots import laikago_pose_utils
-from locomotion.robots import minitaur_pose_utils
 from locomotion.robots import laikago
 
 _ABDUCTION_ACTION_INDEXES = [0, 3, 6, 9]
@@ -120,15 +111,6 @@ def convert_leg_pose_to_motor_angles(robot_class, leg_poses):
   elif len(neutral_motor_angles) == 8 and len(leg_poses) == 12:
     del leg_poses[::3]
 
-  # Minitaur specific conversion calculations using minitaur-specific safety
-  # limits.
-  if str(robot_class) == str(laikago.Laikago):
-    swing_scale = 1.0
-    extension_scale = 1.0
-    # Laikago specific conversion multipliers.
-    swing_scale = _LAIKAGO_SWING_CONVERSION_MULTIPLIER
-    extension_scale = _LAIKAGO_EXTENSION_CONVERSION_MULTIPLIER
-  else:
-    motor_angles = robot_class.convert_leg_pose_to_motor_angles(leg_poses)
+  motor_angles = robot_class.convert_leg_pose_to_motor_angles(leg_poses)
 
   return motor_angles

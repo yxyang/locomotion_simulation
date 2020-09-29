@@ -14,18 +14,6 @@
 # limitations under the License.
 
 """Simple openloop trajectory generators."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import os
-import sys
-import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-sys.path.insert(0, parentdir)
-
 import attr
 from gym import spaces
 import numpy as np
@@ -102,7 +90,7 @@ class LaikagoPoseOffsetGenerator(object):
       init_abduction=laikago_pose_utils.LAIKAGO_DEFAULT_ABDUCTION_ANGLE,
       init_hip=laikago_pose_utils.LAIKAGO_DEFAULT_HIP_ANGLE,
       init_knee=laikago_pose_utils.LAIKAGO_DEFAULT_KNEE_ANGLE,
-      action_limit=[0.5, 0.5, 0.5],
+      action_limit=(0.5, 0.5, 0.5),
       ):
     """Initializes the controller.
     Args:

@@ -12,22 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """A simple locomotion task and termination condition."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-
 class SurvivalTask(object):
   """Default empy task."""
-
   def __init__(self):
     """Initializes the task."""
     self._draw_ref_model_alpha = 1.
     self._ref_model = -1
-    return
 
   def __call__(self, env):
     return self.reward(env)
@@ -35,12 +26,10 @@ class SurvivalTask(object):
   def reset(self, env):
     """Resets the internal state of the task."""
     self._env = env
-    return
 
   def update(self, env):
     """Updates the internal state of the task."""
     del env
-    return
 
   def done(self, env):
     """Checks if the episode is over."""
@@ -51,4 +40,3 @@ class SurvivalTask(object):
     """Get the reward without side effects."""
     del env
     return 1
-
