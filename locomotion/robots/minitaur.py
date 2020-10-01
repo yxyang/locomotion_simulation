@@ -1381,14 +1381,9 @@ class Minitaur(object):
       If interpolation is enabled, returns interpolated action depending on
       the current action repeat substep.
     """
-    if self._enable_action_interpolation:
-      if self._last_action is not None:
-        prev_action = self._last_action
-      else:
-        prev_action = self.GetMotorAngles()
-
+    if self._enable_action_interpolation and self._last_action is not None:
       lerp = float(substep_count + 1) / self._action_repeat
-      proc_action = prev_action + lerp * (action - prev_action)
+      proc_action = self._last_action + lerp * (action - self._last_action)
     else:
       proc_action = action
 

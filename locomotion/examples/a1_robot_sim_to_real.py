@@ -19,7 +19,7 @@ from locomotion.robots import robot_config
 
 def main(_):
   logging.info("WARNING: this code executes low-level controller on the robot.")
-  logging.inf("Make sure the robot is hang on rack before proceeding.")
+  logging.info("Make sure the robot is hang on rack before proceeding.")
   input("Press enter to continue...")
   # Construct sim env and real robot
   sim_env = env_builder.build_regular_env(

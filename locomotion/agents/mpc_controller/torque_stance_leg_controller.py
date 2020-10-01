@@ -145,6 +145,7 @@ class TorqueStanceLegController(leg_controller.LegController):
         desired_com_angular_velocity  #desired_com_angular_velocity
     )
     p.submitProfileTiming()
+
     contact_forces = {}
     for i in range(self._num_legs):
       contact_forces[i] = np.array(
@@ -158,5 +159,4 @@ class TorqueStanceLegController(leg_controller.LegController):
       motor_torques = self._robot.MapContactForceToJointTorques(leg_id, force)
       for joint_id, torque in motor_torques.items():
         action[joint_id] = (0, 0, 0, 0, torque)
-
     return action

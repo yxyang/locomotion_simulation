@@ -11,6 +11,9 @@ from absl import logging
 import numpy as np
 import time
 from tqdm import tqdm
+import pybullet # pytype:disable=import-error
+import pybullet_data
+from pybullet_utils import bullet_client
 
 from locomotion.robots import a1_robot
 from locomotion.robots import robot_config
@@ -24,15 +27,13 @@ def main(_):
   input("Press enter to continue...")
 
   # Construct sim env and real robot
-  robot = a1_robot.A1Robot(pybullet_client=None)
-  while not robot.GetMotorAngles():
-    logging.info("Robot sensors not ready, sleep for 1s...")
-    time.sleep(1)
+  p = bullet_client.BulletClient(connection_mode=pybullet.DIRECT)
+  p.setAdditionalSearchPath(pybullet_data.getDataPath())
+  robot = a1_robot.A1Robot(pybullet_client=p)
 
   # Move the motors slowly to initial position
   current_motor_angle = np.array(robot.GetMotorAngles())
   desired_motor_angle = np.array([0., 0.9, -1.8] * 4)
-
   for t in tqdm(range(300)):
     blend_ratio = np.minimum(t / 200., 1)
     action = (1 - blend_ratio
@@ -47,6 +48,7 @@ def main(_):
     action = np.array([0., angle_hip, angle_calf] * 4)
     robot.ApplyAction(action, robot_config.MotorControlMode.POSITION)
     time.sleep(0.01)
+    print(robot.GetBaseVelocity())
 
   robot.Terminate()
 

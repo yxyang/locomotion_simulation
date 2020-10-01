@@ -5,10 +5,9 @@ import numpy as np
 import os
 import scipy.interpolate
 import time
-
+import pybullet  # pytype:disable=import-error
 import pybullet_data
 from pybullet_utils import bullet_client
-import pybullet  # pytype:disable=import-error
 
 from locomotion.agents.mpc_controller import com_velocity_estimator
 from locomotion.agents.mpc_controller import gait_generator as gait_generator_lib
@@ -18,7 +17,7 @@ from locomotion.agents.mpc_controller import raibert_swing_leg_controller
 from locomotion.agents.mpc_controller import torque_stance_leg_controller
 
 # from locomotion.envs import env_builder
-from locomotion.robots import a1
+from locomotion.robots import a1_robot
 from locomotion.robots import robot_config
 
 flags.DEFINE_string("logdir", None, "where to log trajectories.")
@@ -29,7 +28,7 @@ _NUM_SIMULATION_ITERATION_STEPS = 300
 _STANCE_DURATION_SECONDS = [
     0.3
 ] * 4  # For faster trotting (v > 1.5 ms reduce this to 0.13s).
-_DUTY_FACTOR = [0.6] * 4
+_DUTY_FACTOR = [1e-10] * 4
 _INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
 _MAX_TIME_SECONDS = 5
 _MOTOR_KD = [1.0, 2.0, 2.0] * 4
@@ -110,26 +109,12 @@ def _update_controller_params(controller, lin_speed, ang_speed):
 
 def _run_example(max_time=_MAX_TIME_SECONDS):
   """Runs the locomotion controller example."""
-  # env = env_builder.build_regular_env(
-  #     a1.A1,
-  #     motor_control_mode=robot_config.MotorControlMode.HYBRID,
-  #     enable_rendering=True,
-  #     on_rack=False,
-  #     wrap_trajectory_generator=False)
-  # robot = env.robot
-  # p = env.pybullet_client
-  p = bullet_client.BulletClient(connection_mode=pybullet.GUI)
-  p.setPhysicsEngineParameter(numSolverIterations=30)
-  p.setTimeStep(0.001)
-  p.setGravity(0, 0, -10)
-  p.setPhysicsEngineParameter(enableConeFriction=0)
+  p = bullet_client.BulletClient(connection_mode=pybullet.DIRECT)
   p.setAdditionalSearchPath(pybullet_data.getDataPath())
-  p.loadURDF("plane.urdf")
-
-  robot = a1.A1(p,
-                motor_control_mode=robot_config.MotorControlMode.HYBRID,
-                enable_action_interpolation=False,
-                reset_time=2)
+  robot = a1_robot.A1Robot(
+      pybullet_client=p,
+      motor_control_mode=robot_config.MotorControlMode.HYBRID,
+      enable_action_interpolation=False)
 
   controller = _setup_controller(robot)
   controller.reset()
@@ -139,17 +124,17 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
   while current_time < max_time:
     # Updates the controller behavior parameters.
     lin_speed, ang_speed = (
-        0., 0., 0.), 0.  #_generate_example_linear_angular_speed(current_time)
+        0., 0., 0.), 0.  # _generate_example_linear_angular_speed(current_time)
     _update_controller_params(controller, lin_speed, ang_speed)
 
     # Needed before every call to get_action().
     controller.update()
     hybrid_action = controller.get_action()
     actions.append(hybrid_action)
+    # import pdb
+    # pdb.set_trace()
     robot.Step(hybrid_action)
-    time.sleep(0.007)
-
-    p.configureDebugVisualizer(p.COV_ENABLE_SINGLE_STEP_RENDERING, 1)
+    time.sleep(robot.time_step * robot._action_repeat)  #pylint: disable=protected-access
 
     current_time = robot.GetTimeSinceReset()
 
