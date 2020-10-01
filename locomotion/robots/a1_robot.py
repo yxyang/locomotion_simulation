@@ -160,12 +160,8 @@ class A1Robot(a1.A1):
     self._command_channel_name = COMMAND_CHANNEL_NAME
     # Send dummy command so that the robot starts responding
     command = comm.LowCmd()
-    command.levelFlag = 0xff  # pylint:disable=invalid-name
+    command.levelFlag = 0xff  # pylint: disable=C0103
     self.lc.publish(self._command_channel_name, command)
-    super(A1Robot, self).__init__(pybullet_client,
-                                  time_step=time_step,
-                                  **kwargs)
-
     self._state_channel_name = STATE_CHANNEL_NAME
     self._state_channel = self.lc.subscribe(STATE_CHANNEL_NAME,
                                             self.ReceiveObservationAsync)
@@ -177,6 +173,10 @@ class A1Robot(a1.A1):
     while self._last_raw_state is None:
       logging.info("Robot sensor reading not ready yet, sleep for 1 second...")
       time.sleep(1)
+
+    super(A1Robot, self).__init__(pybullet_client,
+                                  time_step=time_step,
+                                  **kwargs)
 
   def _LCMSubscribeLoop(self):
     while self._is_alive:
@@ -203,19 +203,23 @@ class A1Robot(a1.A1):
     self._last_raw_state = self._raw_state
     self._raw_state = state
     self._base_position = (0, 0, 0)
-    self._base_orientation = list(state.imu.quaternion)
-    self._motor_angles = [motor.q for motor in state.motorState[:12]]
-    self._motor_velocities = [motor.dq for motor in state.motorState[:12]]
+    # Convert quaternion from wxyz to xyzw, which is default for Pybullet.
+    q = state.imu.quaternion
+    self._base_orientation = np.array([q[1], q[2], q[3], q[0]])
+    self._motor_angles = np.array([motor.q for motor in state.motorState[:12]])
+    self._motor_velocities = np.array(
+        [motor.dq for motor in state.motorState[:12]])
     self._velocity_estimator.update(self._raw_state)
     self._joint_states = np.array(
         zip(self._motor_angles, self._motor_velocities))
     self._SetMotorAnglesInSim(self._motor_angles, self._motor_velocities)
 
   def _SetMotorAnglesInSim(self, motor_angles, motor_velocities):
-    for i, motor_id in enumerate(self._motor_id_list):
-      self._pybullet_client.resetJointState(self.quadruped, motor_id,
-                                            motor_angles[i],
-                                            motor_velocities[i])
+    if hasattr(self, '_motor_id_list'):
+      for i, motor_id in enumerate(self._motor_id_list):
+        self._pybullet_client.resetJointState(self.quadruped, motor_id,
+                                              motor_angles[i],
+                                              motor_velocities[i])
 
   def GetTrueMotorAngles(self):
     return self._motor_angles
@@ -298,13 +302,14 @@ class A1Robot(a1.A1):
 
   def Reset(self, reload_urdf=True, default_motor_angles=None, reset_time=3.0):
     """Reset the robot to default motor angles."""
-    super(A1Robot, self).Reset(reload_urdf=True,
-                               default_motor_angles=None,
-                               reset_time=3.0)
+    super(A1Robot, self).Reset(reload_urdf=reload_urdf,
+                               default_motor_angles=default_motor_angles,
+                               reset_time=-1)
     logging.warning(
-        "about to reset the robot, make sure the robot is hang-up.")
+        "About to reset the robot, make sure the robot is hang-up.")
     if not default_motor_angles:
       default_motor_angles = a1.INIT_MOTOR_ANGLES
+
     current_motor_angles = self.GetMotorAngles()
     for t in np.arange(0, reset_time, self.time_step * self._action_repeat):
       blend_ratio = t / reset_time

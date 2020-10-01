@@ -20,10 +20,11 @@ class VelocityEstimator:
   def update(self, robot_state):
     """Propagate current state estimate with new accelerometer reading."""
     sensor_acc = np.array(robot_state.imu.accelerometer)
-    base_orientation = list(robot_state.imu.quaternion)
+    q = robot_state.imu.quaternion
+    base_orientation = [q[1], q[2], q[3], q[0]]
     rot_mat = self.pybullet_client.getMatrixFromQuaternion(base_orientation)
     rot_mat = np.array(rot_mat).reshape((3, 3))
-    calibrated_acc = rot_mat.dot(sensor_acc) + np.array([0., 0., 9.8])
+    calibrated_acc = rot_mat.dot(sensor_acc) + np.array([0., 0., -9.8])
     self.velocity += self.time_step * calibrated_acc
     # TODO: correct estimation using contact legs
 
