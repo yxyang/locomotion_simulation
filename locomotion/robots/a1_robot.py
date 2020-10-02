@@ -143,9 +143,11 @@ class A1Robot(a1.A1):
     # Initialize pd gain vector
     self.motor_kps = np.array([ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN] * 4)
     self.motor_kds = np.array([ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN] * 4)
+    self._pybullet_client = pybullet_client
+    self.time_step = time_step
 
     # Robot state variables
-    self._base_position = None
+    self._init_complete = False
     self._base_orientation = None
     self._raw_state = None
     self._last_raw_state = None
@@ -153,7 +155,7 @@ class A1Robot(a1.A1):
     self._motor_velocities = np.zeros(12)
     self._joint_states = None
     self._velocity_estimator = a1_robot_velocity_estimator.VelocityEstimator(
-        time_step, pybullet_client)
+        self)
 
     # Initiate LCM channel for robot state and actions
     self.lc = lcm.LCM()
@@ -174,9 +176,11 @@ class A1Robot(a1.A1):
       logging.info("Robot sensor reading not ready yet, sleep for 1 second...")
       time.sleep(1)
 
+    kwargs['on_rack'] = True
     super(A1Robot, self).__init__(pybullet_client,
                                   time_step=time_step,
                                   **kwargs)
+    self._init_complete = True
 
   def _LCMSubscribeLoop(self):
     while self._is_alive:
@@ -200,26 +204,26 @@ class A1Robot(a1.A1):
     stream = BytesIO(data)
     state = comm.LowState()
     stream.readinto(state)  # pytype: disable=wrong-arg-types
+
     self._last_raw_state = self._raw_state
     self._raw_state = state
-    self._base_position = (0, 0, 0)
     # Convert quaternion from wxyz to xyzw, which is default for Pybullet.
     q = state.imu.quaternion
     self._base_orientation = np.array([q[1], q[2], q[3], q[0]])
     self._motor_angles = np.array([motor.q for motor in state.motorState[:12]])
     self._motor_velocities = np.array(
         [motor.dq for motor in state.motorState[:12]])
-    self._velocity_estimator.update(self._raw_state)
     self._joint_states = np.array(
-        zip(self._motor_angles, self._motor_velocities))
-    self._SetMotorAnglesInSim(self._motor_angles, self._motor_velocities)
+        list(zip(self._motor_angles, self._motor_velocities)))
+    if self._init_complete:
+      self._SetMotorAnglesInSim(self._motor_angles, self._motor_velocities)
+      self._velocity_estimator.update(self._raw_state)
 
   def _SetMotorAnglesInSim(self, motor_angles, motor_velocities):
-    if hasattr(self, '_motor_id_list'):
-      for i, motor_id in enumerate(self._motor_id_list):
-        self._pybullet_client.resetJointState(self.quadruped, motor_id,
-                                              motor_angles[i],
-                                              motor_velocities[i])
+    for i, motor_id in enumerate(self._motor_id_list):
+      self._pybullet_client.resetJointState(self.quadruped, motor_id,
+                                            motor_angles[i],
+                                            motor_velocities[i])
 
   def GetTrueMotorAngles(self):
     return self._motor_angles
@@ -231,7 +235,8 @@ class A1Robot(a1.A1):
     return self._motor_velocities
 
   def GetBasePosition(self):
-    return self._base_position
+    return self._pybullet_client.getBasePositionAndOrientation(
+        self.quadruped)[0]
 
   def GetBaseRollPitchYaw(self):
     return self._pybullet_client.getEulerFromQuaternion(self._base_orientation)
@@ -245,10 +250,13 @@ class A1Robot(a1.A1):
   def GetTrueBaseRollPitchYawRate(self):
     delta = np.array(self._raw_state.imu.rpy) - np.array(
         self._last_raw_state.imu.rpy)
-    return delta / self._time_step
+    return delta / self.time_step
 
   def GetBaseVelocity(self):
     return self._velocity_estimator.estimated_velocity
+
+  def GetFootContacts(self):
+    return np.array(self._raw_state.footForce) > 20
 
   def ApplyAction(self, motor_commands, motor_control_mode=None):
     """Clips and then apply the motor commands using the motor model.

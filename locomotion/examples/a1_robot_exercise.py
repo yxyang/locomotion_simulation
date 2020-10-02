@@ -11,18 +11,18 @@ from absl import logging
 import numpy as np
 import time
 from tqdm import tqdm
-import pybullet # pytype:disable=import-error
+import pybullet  # pytype:disable=import-error
 import pybullet_data
 from pybullet_utils import bullet_client
 
 from locomotion.robots import a1_robot
 from locomotion.robots import robot_config
-
 FREQ = 0.5
 
 
 def main(_):
-  logging.info("WARNING: this code executes low-level controller on the robot.")
+  logging.info(
+      "WARNING: this code executes low-level controller on the robot.")
   logging.info("Make sure the robot is hang on rack before proceeding.")
   input("Press enter to continue...")
 
@@ -42,7 +42,7 @@ def main(_):
     time.sleep(0.01)
 
   # Move the legs in a sinusoidal curve
-  for t in range(10000):
+  for t in tqdm(range(1000)):
     angle_hip = 0.9 + 0.2 * np.sin(2 * np.pi * FREQ * 0.01 * t)
     angle_calf = -2 * angle_hip
     action = np.array([0., angle_hip, angle_calf] * 4)
@@ -51,7 +51,6 @@ def main(_):
     print(robot.GetBaseVelocity())
 
   robot.Terminate()
-
 
 if __name__ == '__main__':
   app.run(main)

@@ -32,7 +32,6 @@ _STANCE_DURATION_SECONDS = [
 _DUTY_FACTOR = [0.6] * 4
 _INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
 _MAX_TIME_SECONDS = 5
-_MOTOR_KD = [1.0, 2.0, 2.0] * 4
 
 LAIKAGO_STANDING = (
     gait_generator_lib.LegState.STANCE,
@@ -137,21 +136,24 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
   current_time = robot.GetTimeSinceReset()
   actions = []
   while current_time < max_time:
+    start_time_robot = current_time
+    start_time_wall = time.time()
+
     # Updates the controller behavior parameters.
     lin_speed, ang_speed = (
         0., 0., 0.), 0.  #_generate_example_linear_angular_speed(current_time)
     _update_controller_params(controller, lin_speed, ang_speed)
-
-    # Needed before every call to get_action().
     controller.update()
     hybrid_action = controller.get_action()
     actions.append(hybrid_action)
     robot.Step(hybrid_action)
-    time.sleep(0.007)
-
-    p.configureDebugVisualizer(p.COV_ENABLE_SINGLE_STEP_RENDERING, 1)
 
     current_time = robot.GetTimeSinceReset()
+    expected_duration = current_time - start_time_robot
+    actual_duration = time.time() - start_time_wall
+
+    if actual_duration < expected_duration:
+      time.sleep(expected_duration - actual_duration)
 
   if FLAGS.logdir:
     np.savez(os.path.join(FLAGS.logdir, 'action.npz'), action=actions)

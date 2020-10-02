@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Simple openloop trajectory generators."""
 import attr
 from gym import spaces
@@ -21,9 +20,9 @@ import numpy as np
 from locomotion.robots import laikago_pose_utils
 from locomotion.robots import minitaur_pose_utils
 
+
 class MinitaurPoseOffsetGenerator(object):
   """A trajectory generator that return a constant leg pose."""
-
   def __init__(self,
                init_swing=0,
                init_extension=2.0,
@@ -73,8 +72,9 @@ class MinitaurPoseOffsetGenerator(object):
       A numpy array. The desired motor angles.
     """
     del current_time
-    return minitaur_pose_utils.leg_pose_to_motor_angles(
-        self._pose + self._action_scale * np.array(input_action))
+    return minitaur_pose_utils.leg_pose_to_motor_angles(self._pose +
+                                                        self._action_scale *
+                                                        np.array(input_action))
 
   def get_observation(self, input_observation):
     """Get the trajectory generator's observation."""
@@ -84,33 +84,31 @@ class MinitaurPoseOffsetGenerator(object):
 
 class LaikagoPoseOffsetGenerator(object):
   """A trajectory generator that return constant motor angles."""
-
   def __init__(
       self,
       init_abduction=laikago_pose_utils.LAIKAGO_DEFAULT_ABDUCTION_ANGLE,
       init_hip=laikago_pose_utils.LAIKAGO_DEFAULT_HIP_ANGLE,
       init_knee=laikago_pose_utils.LAIKAGO_DEFAULT_KNEE_ANGLE,
       action_limit=(0.5, 0.5, 0.5),
-      ):
+  ):
     """Initializes the controller.
     Args:
       action_limit: a tuple of [limit_abduction, limit_hip, limit_knee]
     """
     self._pose = np.array(
         attr.astuple(
-            laikago_pose_utils.LaikagoPose(
-                abduction_angle_0=init_abduction,
-                hip_angle_0=init_hip,
-                knee_angle_0=init_knee,
-                abduction_angle_1=init_abduction,
-                hip_angle_1=init_hip,
-                knee_angle_1=init_knee,
-                abduction_angle_2=init_abduction,
-                hip_angle_2=init_hip,
-                knee_angle_2=init_knee,
-                abduction_angle_3=init_abduction,
-                hip_angle_3=init_hip,
-                knee_angle_3=init_knee)))
+            laikago_pose_utils.LaikagoPose(abduction_angle_0=init_abduction,
+                                           hip_angle_0=init_hip,
+                                           knee_angle_0=init_knee,
+                                           abduction_angle_1=init_abduction,
+                                           hip_angle_1=init_hip,
+                                           knee_angle_1=init_knee,
+                                           abduction_angle_2=init_abduction,
+                                           hip_angle_2=init_hip,
+                                           knee_angle_2=init_knee,
+                                           abduction_angle_3=init_abduction,
+                                           hip_angle_3=init_hip,
+                                           knee_angle_3=init_knee)))
     action_high = np.hstack([action_limit] * 4)
     self.action_space = spaces.Box(-action_high, action_high, dtype=np.float32)
 

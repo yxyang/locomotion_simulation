@@ -10,6 +10,7 @@ required.
 
 import ctypes
 
+
 class Cartesian(ctypes.Structure):
   _pack_ = 1
   _fields_ = [('x', ctypes.c_float), ('y', ctypes.c_float),
@@ -47,16 +48,31 @@ class MotorCmd(ctypes.Structure):
               ('reserve', ctypes.c_uint32 * 3)]
 
 
+# This is the hacked LowState due to packet loss issue.
+
+
 class LowState(ctypes.Structure):
   _pack_ = 1
-  _fields_ = [('levelFlag', ctypes.c_uint8), ('commVersion', ctypes.c_uint16),
-              ('robotID', ctypes.c_uint16), ('SN', ctypes.c_uint32),
+  _fields_ = [('levelFlag', ctypes.c_uint8), ('footForce', ctypes.c_int16 * 4),
               ('bandWidth', ctypes.c_uint8), ('imu', IMU),
               ('motorState', MotorState * 20),
-              ('footForce', ctypes.c_int16 * 4),
+              ('footForceUnused', ctypes.c_int16 * 4),
               ('footForceEst', ctypes.c_int16 * 4), ('tick', ctypes.c_uint32),
               ('wirelessRemote', ctypes.c_uint8 * 40),
               ('reserve', ctypes.c_uint32), ('crc', ctypes.c_uint32)]
+
+
+# This is the original (correct Low State)
+# class LowState(ctypes.Structure):
+#   _pack_ = 1
+#   _fields_ = [('levelFlag', ctypes.c_uint8), ('commVersion', ctypes.c_uint16),
+#               ('robotID', ctypes.c_uint16), ('SN', ctypes.c_uint32),
+#               ('bandWidth', ctypes.c_uint8), ('imu', IMU),
+#               ('motorState', MotorState * 20),
+#               ('footForce', ctypes.c_int16 * 4),
+#               ('footForceEst', ctypes.c_int16 * 4), ('tick', ctypes.c_uint32),
+#               ('wirelessRemote', ctypes.c_uint8 * 40),
+#               ('reserve', ctypes.c_uint32), ('crc', ctypes.c_uint32)]
 
 
 class LowCmd(ctypes.Structure):

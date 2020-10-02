@@ -110,6 +110,10 @@ def _update_controller_params(controller, lin_speed, ang_speed):
 def _run_example(max_time=_MAX_TIME_SECONDS):
   """Runs the locomotion controller example."""
   p = bullet_client.BulletClient(connection_mode=pybullet.DIRECT)
+  p.resetSimulation()
+  p.setPhysicsEngineParameter(numSolverIterations=30)
+  p.setTimeStep(0.001)
+  p.setGravity(0, 0, -10)
   p.setAdditionalSearchPath(pybullet_data.getDataPath())
   robot = a1_robot.A1Robot(
       pybullet_client=p,
@@ -131,8 +135,6 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
     controller.update()
     hybrid_action = controller.get_action()
     actions.append(hybrid_action)
-    # import pdb
-    # pdb.set_trace()
     robot.Step(hybrid_action)
     time.sleep(robot.time_step * robot._action_repeat)  #pylint: disable=protected-access
 
