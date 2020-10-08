@@ -98,7 +98,9 @@ LOWER_BOUND = -6.28318548203
 
 class Laikago(minitaur.Minitaur):
   """A simulation for the Laikago robot."""
-
+  MPC_BODY_MASS = 215/9.8
+  MPC_BODY_INERTIA = (0.07335, 0, 0, 0, 0.25068, 0, 0, 0, 0.25447)
+  MPC_BODY_HEIGHT = 0.42
   ACTION_CONFIG = [
       locomotion_gym_config.ScalarField(name="motor_angle_0",
                                         upper_bound=UPPER_BOUND,
@@ -142,14 +144,14 @@ class Laikago(minitaur.Minitaur):
       self,
       pybullet_client,
       urdf_filename=URDF_FILENAME,
-      enable_clip_motor_commands=True,
+      enable_clip_motor_commands=False,
       time_step=0.001,
       action_repeat=33,
       sensors=None,
       control_latency=0.002,
       on_rack=False,
       enable_action_interpolation=True,
-      enable_action_filter=True,
+      enable_action_filter=False,
       motor_control_mode=None,
       reset_time=-1,
       allow_knee_contact=False,

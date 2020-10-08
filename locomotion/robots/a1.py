@@ -60,19 +60,15 @@ _DEFAULT_HIP_POSITIONS = (
     (-0.21, 0.1157, 0),
 )
 
-ABDUCTION_P_GAIN = 220.0
+ABDUCTION_P_GAIN = 100.0
 ABDUCTION_D_GAIN = 1.
-HIP_P_GAIN = 220.0
+HIP_P_GAIN = 100.0
 HIP_D_GAIN = 2.0
-KNEE_P_GAIN = 220.0
+KNEE_P_GAIN = 100.0
 KNEE_D_GAIN = 2.0
 
 # Bases on the readings from Laikago's default pose.
-INIT_MOTOR_ANGLES = np.array([
-    0,
-    0.9,
-    -1.8
-] * NUM_LEGS)
+INIT_MOTOR_ANGLES = np.array([0, 0.9, -1.8] * NUM_LEGS)
 
 HIP_NAME_PATTERN = re.compile(r"\w+_hip_\w+")
 UPPER_NAME_PATTERN = re.compile(r"\w+_upper_\w+")
@@ -88,9 +84,10 @@ _LINK_A_FIELD_NUMBER = 3
 
 class A1(minitaur.Minitaur):
   """A simulation for the Laikago robot."""
-  MPC_BODY_MASS = 125 / 9.8
-  MPC_BODY_INERTIA = (0.07335, 0, 0, 0, 0.25068, 0, 0, 0, 0.25447)
-  MPC_BODY_HEIGHT = 0.31
+  MPC_BODY_MASS = 108 / 9.8
+  MPC_BODY_INERTIA = np.array(
+      [0.01683993, 0., 0., 0., 0.056579028, 0., 0., 0., 0.064713601]) * 2.5
+  MPC_BODY_HEIGHT = 0.24
   MPC_VELOCITY_MULTIPLIER = 0.5
   ACTION_CONFIG = [
       locomotion_gym_config.ScalarField(name="FR_hip_motor",

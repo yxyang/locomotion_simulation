@@ -154,6 +154,7 @@ class A1Robot(a1.A1):
     self._motor_angles = np.zeros(12)
     self._motor_velocities = np.zeros(12)
     self._joint_states = None
+    self._last_reset_time = time.time()
     self._velocity_estimator = a1_robot_velocity_estimator.VelocityEstimator(
         self)
 
@@ -258,6 +259,14 @@ class A1Robot(a1.A1):
   def GetFootContacts(self):
     return np.array(self._raw_state.footForce) > 20
 
+  def GetTimeSinceReset(self):
+    return time.time() - self._last_reset_time
+
+  @property
+  def motor_velocities(self):
+    return self._motor_velocities
+
+
   def ApplyAction(self, motor_commands, motor_control_mode=None):
     """Clips and then apply the motor commands using the motor model.
 
@@ -315,6 +324,7 @@ class A1Robot(a1.A1):
                                reset_time=-1)
     logging.warning(
         "About to reset the robot, make sure the robot is hang-up.")
+
     if not default_motor_angles:
       default_motor_angles = a1.INIT_MOTOR_ANGLES
 
@@ -324,6 +334,7 @@ class A1Robot(a1.A1):
       action = blend_ratio * default_motor_angles + (
           1 - blend_ratio) * current_motor_angles
       self.ApplyAction(action, robot_config.MotorControlMode.POSITION)
+      time.sleep(self.time_step * self._action_repeat)
 
     if self._enable_action_filter:
       self._ResetActionFilter()
@@ -331,6 +342,7 @@ class A1Robot(a1.A1):
     self._velocity_estimator.reset()
     self._state_action_counter = 0
     self._step_counter = 0
+    self._last_reset_time = time.time()
 
   def Terminate(self):
     self._is_alive = False

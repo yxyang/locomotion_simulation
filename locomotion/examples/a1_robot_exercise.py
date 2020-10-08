@@ -42,13 +42,13 @@ def main(_):
     time.sleep(0.01)
 
   # Move the legs in a sinusoidal curve
-  for t in tqdm(range(1000)):
+  for t in range(1000):
     angle_hip = 0.9 + 0.2 * np.sin(2 * np.pi * FREQ * 0.01 * t)
     angle_calf = -2 * angle_hip
     action = np.array([0., angle_hip, angle_calf] * 4)
     robot.ApplyAction(action, robot_config.MotorControlMode.POSITION)
     time.sleep(0.01)
-    print(robot.GetBaseVelocity())
+    print(robot.GetFootContacts())
 
   robot.Terminate()
 

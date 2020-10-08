@@ -170,27 +170,23 @@ class RaibertSwingLegController(leg_controller.LegController):
 
       # For now we did not consider the body pitch/roll and all calculation is
       # in the body frame. TODO(b/143378213): Calculate the foot_target_position
-      # in world farme and then project back to calculate the joint angles.
+      # in world frame and then project back to calculate the joint angles.
       hip_offset = hip_positions[leg_id]
       twisting_vector = np.array((-hip_offset[1], hip_offset[0], 0))
       hip_horizontal_velocity = com_velocity + yaw_dot * twisting_vector
       target_hip_horizontal_velocity = (
           self.desired_speed + self.desired_twisting_speed * twisting_vector)
-
       foot_target_position = (
           hip_horizontal_velocity *
           self._gait_generator.swing_duration[leg_id] / 2 - _KP *
           (target_hip_horizontal_velocity - hip_horizontal_velocity)
       ) - self._desired_height + np.array((hip_offset[0], hip_offset[1], 0))
-
       foot_position = _gen_swing_foot_trajectory(
           self._gait_generator.normalized_phase[leg_id],
           self._phase_switch_foot_local_position[leg_id], foot_target_position)
-
       joint_ids, joint_angles = (
           self._robot.ComputeMotorAnglesFromFootLocalPosition(
               leg_id, foot_position))
-
       # Update the stored joint angles as needed.
       for joint_id, joint_angle in zip(joint_ids, joint_angles):
         self._joint_angles[joint_id] = (joint_angle, leg_id)

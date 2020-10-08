@@ -14,7 +14,7 @@ import pybullet as p  # pytype: disable=import-error
 try:
   from locomotion.agents.mpc_controller import gait_generator as gait_generator_lib
   from locomotion.agents.mpc_controller import leg_controller
-except: #pylint: disable=W0702
+except:  #pylint: disable=W0702
   print("You need to install motion_imitation")
   print("Either run python3 setup.py install --user in this repo")
   print("or use pip3 install motion_imitation --user")
@@ -22,7 +22,7 @@ except: #pylint: disable=W0702
 
 try:
   import mpc_osqp as convex_mpc  # pytype: disable=import-error
-except: #pylint: disable=W0702
+except:  #pylint: disable=W0702
   print("You need to install motion_imitation")
   print("Either run python3 setup.py install --user in this repo")
   print("or use pip3 install motion_imitation --user")
@@ -115,7 +115,8 @@ class TorqueStanceLegController(leg_controller.LegController):
     desired_com_angular_velocity = np.array(
         (0., 0., self.desired_twisting_speed), dtype=np.float64)
     foot_contact_state = np.array(
-        [(leg_state == gait_generator_lib.LegState.STANCE)
+        [(leg_state in (gait_generator_lib.LegState.STANCE,
+                        gait_generator_lib.LegState.EARLY_CONTACT))
          for leg_state in self._gait_generator.desired_leg_state],
         dtype=np.int32)
 
@@ -153,10 +154,13 @@ class TorqueStanceLegController(leg_controller.LegController):
                                    _FORCE_DIMENSION])
     action = {}
     for leg_id, force in contact_forces.items():
-      if self._gait_generator.leg_state[
-          leg_id] == gait_generator_lib.LegState.LOSE_CONTACT:
-        force = (0, 0, 0)
+      # While "Lose Contact" is useful in simulation, in real environment it's
+      # susceptible to sensor noise. Disabling for now.
+      # if self._gait_generator.leg_state[
+      #     leg_id] == gait_generator_lib.LegState.LOSE_CONTACT:
+      #   force = (0, 0, 0)
       motor_torques = self._robot.MapContactForceToJointTorques(leg_id, force)
       for joint_id, torque in motor_torques.items():
         action[joint_id] = (0, 0, 0, 0, torque)
+
     return action

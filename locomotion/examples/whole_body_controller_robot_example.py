@@ -1,10 +1,14 @@
 """Example of whole body controller on A1 robot."""
 from absl import app
 from absl import flags
+from absl import logging
+
+import copy
 import numpy as np
 import os
-import scipy.interpolate
+from datetime import datetime
 import time
+import pickle
 import pybullet  # pytype:disable=import-error
 import pybullet_data
 from pybullet_utils import bullet_client
@@ -20,44 +24,23 @@ from locomotion.agents.mpc_controller import torque_stance_leg_controller
 from locomotion.robots import a1_robot
 from locomotion.robots import robot_config
 
+flags.DEFINE_integer("max_time_secs", 1, "max time to run the controller.")
 flags.DEFINE_string("logdir", None, "where to log trajectories.")
 FLAGS = flags.FLAGS
 
 _NUM_SIMULATION_ITERATION_STEPS = 300
-
 _STANCE_DURATION_SECONDS = [
-    0.3
+    0.5
 ] * 4  # For faster trotting (v > 1.5 ms reduce this to 0.13s).
-_DUTY_FACTOR = [1e-10] * 4
-_INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
-_MAX_TIME_SECONDS = 5
-_MOTOR_KD = [1.0, 2.0, 2.0] * 4
+_DUTY_FACTOR = [.75] * 4
+_INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.]
 
-LAIKAGO_STANDING = (
+_INIT_LEG_STATE = (
     gait_generator_lib.LegState.STANCE,
     gait_generator_lib.LegState.STANCE,
     gait_generator_lib.LegState.STANCE,
-    gait_generator_lib.LegState.STANCE,
+    gait_generator_lib.LegState.SWING,
 )
-
-
-def _generate_example_linear_angular_speed(t):
-  """Creates an example speed profile based on time for demo purpose."""
-  vx = 0.6
-  vy = 0.2
-  wz = 0.8
-
-  time_points = (0, 5, 10, 15, 20, 25, 30)
-  speed_points = ((0, 0, 0, 0), (0, 0, 0, wz), (vx, 0, 0, 0), (0, 0, 0, -wz),
-                  (0, -vy, 0, 0), (0, 0, 0, 0), (0, 0, 0, wz))
-
-  speed = scipy.interpolate.interp1d(time_points,
-                                     speed_points,
-                                     kind="previous",
-                                     fill_value="extrapolate",
-                                     axis=0)(t)
-
-  return speed[0:3], speed[3]
 
 
 def _setup_controller(robot):
@@ -69,7 +52,9 @@ def _setup_controller(robot):
       robot,
       stance_duration=_STANCE_DURATION_SECONDS,
       duty_factor=_DUTY_FACTOR,
-      initial_leg_phase=_INIT_PHASE_FULL_CYCLE)
+      initial_leg_phase=_INIT_PHASE_FULL_CYCLE,
+      initial_leg_state=_INIT_LEG_STATE)
+
   state_estimator = com_velocity_estimator.COMVelocityEstimator(robot)
   sw_controller = raibert_swing_leg_controller.RaibertSwingLegController(
       robot,
@@ -107,41 +92,53 @@ def _update_controller_params(controller, lin_speed, ang_speed):
   controller.stance_leg_controller.desired_twisting_speed = ang_speed
 
 
-def _run_example(max_time=_MAX_TIME_SECONDS):
+def _run_example():
   """Runs the locomotion controller example."""
   p = bullet_client.BulletClient(connection_mode=pybullet.DIRECT)
-  p.resetSimulation()
-  p.setPhysicsEngineParameter(numSolverIterations=30)
-  p.setTimeStep(0.001)
-  p.setGravity(0, 0, -10)
   p.setAdditionalSearchPath(pybullet_data.getDataPath())
   robot = a1_robot.A1Robot(
       pybullet_client=p,
       motor_control_mode=robot_config.MotorControlMode.HYBRID,
-      enable_action_interpolation=False)
-
+      enable_action_interpolation=False,
+      time_step=0.002,
+      action_repeat=1)
   controller = _setup_controller(robot)
   controller.reset()
 
-  current_time = robot.GetTimeSinceReset()
   actions = []
-  while current_time < max_time:
+  raw_states = []
+  com_vels, imu_rates = [], []
+  start_time = robot.GetTimeSinceReset()
+  current_time = start_time
+
+  while current_time - start_time < FLAGS.max_time_secs:
     # Updates the controller behavior parameters.
-    lin_speed, ang_speed = (
-        0., 0., 0.), 0.  # _generate_example_linear_angular_speed(current_time)
+    lin_speed, ang_speed = (0., 0., 0.), 0.
     _update_controller_params(controller, lin_speed, ang_speed)
 
     # Needed before every call to get_action().
     controller.update()
     hybrid_action = controller.get_action()
+    raw_states.append(copy.deepcopy(robot._raw_state))  # pylint:disable=protected-access
+    com_vels.append(robot.GetBaseVelocity().copy())
+    imu_rates.append(robot.GetBaseRollPitchYawRate().copy())
     actions.append(hybrid_action)
     robot.Step(hybrid_action)
-    time.sleep(robot.time_step * robot._action_repeat)  #pylint: disable=protected-access
-
     current_time = robot.GetTimeSinceReset()
+    time.sleep(0.005)
 
+  robot.Reset()
+  robot.Terminate()
   if FLAGS.logdir:
-    np.savez(os.path.join(FLAGS.logdir, 'action.npz'), action=actions)
+    logdir = os.path.join(FLAGS.logdir,
+                          datetime.now().strftime('%Y_%m_%d_%H_%M_%S'))
+    os.makedirs(logdir)
+    np.savez(os.path.join(logdir, 'action.npz'),
+             action=actions,
+             com_vels=com_vels,
+             imu_rates=imu_rates)
+    pickle.dump(raw_states, open(os.path.join(logdir, 'raw_states.pkl'), 'wb'))
+    logging.info("logged to: {}".format(logdir))
 
 
 def main(argv):

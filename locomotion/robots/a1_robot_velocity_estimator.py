@@ -54,7 +54,7 @@ class VelocityEstimator:
     calibrated_acc = rot_mat.dot(sensor_acc) + np.array([0., 0., -9.8])
     self.filter.predict(u=calibrated_acc)
 
-    # TODO: correct estimation using contact legs
+    # Correct estimation using contact legs
     observed_velocities = []
     foot_contact = self.robot.GetFootContacts()
     for leg_id in range(4):

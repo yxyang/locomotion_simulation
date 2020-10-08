@@ -84,4 +84,5 @@ class LocomotionController(object):
       else:
         assert joint_id in stance_action
         action.extend(stance_action[joint_id])
+
     return action

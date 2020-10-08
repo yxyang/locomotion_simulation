@@ -34,7 +34,8 @@ def main(_):
   env = env_builder.build_regular_env(robot,
                                       motor_control_mode=motor_control_mode,
                                       enable_rendering=True,
-                                      on_rack=FLAGS.on_rack)
+                                      on_rack=FLAGS.on_rack,
+                                      wrap_trajectory_generator=False)
 
   action_low, action_high = env.action_space.low, env.action_space.high
   action_median = (action_low + action_high) / 2.
