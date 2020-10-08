@@ -55,7 +55,8 @@ def _setup_controller(robot):
       initial_leg_phase=_INIT_PHASE_FULL_CYCLE,
       initial_leg_state=_INIT_LEG_STATE)
 
-  state_estimator = com_velocity_estimator.COMVelocityEstimator(robot)
+  state_estimator = com_velocity_estimator.COMVelocityEstimator(robot,
+                                                                window_size=60)
   sw_controller = raibert_swing_leg_controller.RaibertSwingLegController(
       robot,
       gait_generator,
@@ -107,7 +108,7 @@ def _run_example():
 
   actions = []
   raw_states = []
-  com_vels, imu_rates = [], []
+  timestamps, com_vels, imu_rates = [], [], []
   start_time = robot.GetTimeSinceReset()
   current_time = start_time
 
@@ -125,7 +126,8 @@ def _run_example():
     actions.append(hybrid_action)
     robot.Step(hybrid_action)
     current_time = robot.GetTimeSinceReset()
-    time.sleep(0.005)
+    timestamps.append(current_time)
+    time.sleep(0.001)
 
   robot.Reset()
   robot.Terminate()
@@ -136,7 +138,8 @@ def _run_example():
     np.savez(os.path.join(logdir, 'action.npz'),
              action=actions,
              com_vels=com_vels,
-             imu_rates=imu_rates)
+             imu_rates=imu_rates,
+             timestamps=timestamps)
     pickle.dump(raw_states, open(os.path.join(logdir, 'raw_states.pkl'), 'wb'))
     logging.info("logged to: {}".format(logdir))
 

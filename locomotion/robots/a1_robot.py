@@ -98,7 +98,10 @@ _LINK_A_FIELD_NUMBER = 3
 
 class A1Robot(a1.A1):
   """Interface for real A1 robot."""
+  MPC_BODY_MASS = 14.2
+  MPC_BODY_INERTIA = (0.07335, 0, 0, 0, 0.25068, 0, 0, 0, 0.25447)
 
+  MPC_BODY_HEIGHT = 0.24
   ACTION_CONFIG = [
       locomotion_gym_config.ScalarField(name="FR_hip_motor",
                                         upper_bound=0.802851455917,

@@ -34,7 +34,8 @@ _FORCE_DIMENSION = 3
 # Intuitively, this is the weights of each state dimension when tracking a
 # desired CoM trajectory. The full CoM state is represented by
 # (roll_pitch_yaw, position, angular_velocity, velocity, gravity_place_holder).
-_MPC_WEIGHTS = (5, 5, 0.2, 0, 0, 10, 0.5, 0.5, 0.2, 0.2, 0.2, 0.1, 0)
+# _MPC_WEIGHTS = (5, 5, 0.2, 0, 0, 10, 0.5, 0.5, 0.2, 0.2, 0.2, 0.1, 0)
+_MPC_WEIGHTS = (5, 5, 0.2, 0, 0, 10, 0., 0., 0., 0.2, 0.2, 0.1, 0)
 _PLANNING_HORIZON_STEPS = 10
 _PLANNING_TIMESTEP = 0.025
 
