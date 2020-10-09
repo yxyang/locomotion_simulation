@@ -127,7 +127,7 @@ def _run_example():
     robot.Step(hybrid_action)
     current_time = robot.GetTimeSinceReset()
     timestamps.append(current_time)
-    time.sleep(0.001)
+    time.sleep(0.003)
 
   robot.Reset()
   robot.Terminate()
