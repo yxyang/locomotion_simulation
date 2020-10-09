@@ -56,7 +56,7 @@ def _setup_controller(robot):
       initial_leg_state=_INIT_LEG_STATE)
 
   state_estimator = com_velocity_estimator.COMVelocityEstimator(robot,
-                                                                window_size=60)
+                                                                window_size=1)
   sw_controller = raibert_swing_leg_controller.RaibertSwingLegController(
       robot,
       gait_generator,

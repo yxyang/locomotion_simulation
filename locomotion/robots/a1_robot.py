@@ -252,9 +252,7 @@ class A1Robot(a1.A1):
     return self.GetTrueBaseRollPitchYawRate()
 
   def GetTrueBaseRollPitchYawRate(self):
-    delta = np.array(self._raw_state.imu.rpy) - np.array(
-        self._last_raw_state.imu.rpy)
-    return delta / self.time_step
+    return np.array(self._raw_state.imu.gyroscope)
 
   def GetBaseVelocity(self):
     return self._velocity_estimator.estimated_velocity

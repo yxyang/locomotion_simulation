@@ -1,20 +1,27 @@
 """Estimates base velocity for A1 robot from accelerometer readings."""
 import numpy as np
 from filterpy.kalman import KalmanFilter
+from locomotion.utilities.moving_window_filter import MovingWindowFilter
 
 
 class VelocityEstimator:
   """Estimates base velocity of A1 robot.
 
+  The velocity estimator consists of 2 parts:
+  1) A state estimator for CoM velocity.
+
   Two sources of information are used:
   The integrated reading of accelerometer and the velocity estimation from
   contact legs. The readings are fused together using a Kalman Filter.
+
+  2) A moving average filter to smooth out velocity readings
   """
   def __init__(self,
                robot,
                accelerometer_variance=0.1,
                sensor_variance=0.1,
-               initial_variance=0.1):
+               initial_variance=0.1,
+               moving_window_filter_size=50):
     """Initiates the velocity estimator.
 
     See filterpy documentation in the link below for more details.
@@ -40,9 +47,24 @@ class VelocityEstimator:
     self.filter.B = np.eye(
         3) * self.robot.time_step  # Control transition matrix
 
+    self._window_size = moving_window_filter_size
+    self.moving_window_filter_x = MovingWindowFilter(
+        window_size=self._window_size)
+    self.moving_window_filter_y = MovingWindowFilter(
+        window_size=self._window_size)
+    self.moving_window_filter_z = MovingWindowFilter(
+        window_size=self._window_size)
+    self._estimated_velocity = np.zeros(3)
+
   def reset(self):
     self.filter.x = np.zeros(3)
     self.filter.P = np.eye(3) * self._initial_variance
+    self.moving_window_filter_x = MovingWindowFilter(
+        window_size=self._window_size)
+    self.moving_window_filter_y = MovingWindowFilter(
+        window_size=self._window_size)
+    self.moving_window_filter_z = MovingWindowFilter(
+        window_size=self._window_size)
 
   def update(self, robot_state):
     """Propagate current state estimate with new accelerometer reading."""
@@ -73,6 +95,11 @@ class VelocityEstimator:
       observed_velocities = np.mean(observed_velocities, axis=0)
       self.filter.update(observed_velocities)
 
+    vel_x = self.moving_window_filter_x.calculate_average(self.filter.x[0])
+    vel_y = self.moving_window_filter_y.calculate_average(self.filter.x[1])
+    vel_z = self.moving_window_filter_z.calculate_average(self.filter.x[2])
+    self._estimated_velocity = np.array([vel_x, vel_y, vel_z])
+
   @property
   def estimated_velocity(self):
-    return self.filter.x.copy()
+    return self._estimated_velocity.copy()

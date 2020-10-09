@@ -48,7 +48,8 @@ def main(_):
     action = np.array([0., angle_hip, angle_calf] * 4)
     robot.ApplyAction(action, robot_config.MotorControlMode.POSITION)
     time.sleep(0.01)
-    print(robot.GetFootContacts())
+    # print(robot.GetFootContacts())
+    print(robot.GetBaseVelocity())
 
   robot.Terminate()
 
