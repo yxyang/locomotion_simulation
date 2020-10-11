@@ -32,17 +32,31 @@ _STANCE_DURATION_SECONDS = [
     0.5
 ] * 4  # For faster trotting (v > 1.5 ms reduce this to 0.13s).
 
-_DUTY_FACTOR = [.75] * 4
-_INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.]
+_DUTY_FACTOR = [1.] * 4
+_INIT_PHASE_FULL_CYCLE = [0., 0., 0., 0.]
 _MAX_TIME_SECONDS = 5
 
 _INIT_LEG_STATE = (
     gait_generator_lib.LegState.STANCE,
     gait_generator_lib.LegState.STANCE,
     gait_generator_lib.LegState.STANCE,
-    gait_generator_lib.LegState.SWING,
+    gait_generator_lib.LegState.S,
 )
 
+# Tripod
+# _DUTY_FACTOR = [.75] * 4
+# _INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.]
+# _MAX_TIME_SECONDS = 5
+
+# _INIT_LEG_STATE = (
+#     gait_generator_lib.LegState.STANCE,
+#     gait_generator_lib.LegState.STANCE,
+#     gait_generator_lib.LegState.STANCE,
+#     gait_generator_lib.LegState.SWING,
+# )
+
+
+# Trotting
 # _DUTY_FACTOR = [0.6] * 4
 # _INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
 # _MAX_TIME_SECONDS = 5

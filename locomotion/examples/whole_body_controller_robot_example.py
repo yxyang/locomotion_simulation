@@ -24,7 +24,7 @@ from locomotion.agents.mpc_controller import torque_stance_leg_controller
 from locomotion.robots import a1_robot
 from locomotion.robots import robot_config
 
-flags.DEFINE_integer("max_time_secs", 1, "max time to run the controller.")
+flags.DEFINE_float("max_time_secs", 1., "max time to run the controller.")
 flags.DEFINE_string("logdir", None, "where to log trajectories.")
 FLAGS = flags.FLAGS
 
@@ -32,8 +32,23 @@ _NUM_SIMULATION_ITERATION_STEPS = 300
 _STANCE_DURATION_SECONDS = [
     0.5
 ] * 4  # For faster trotting (v > 1.5 ms reduce this to 0.13s).
+
+# Stand
+# _DUTY_FACTOR = [1.] * 4
+# _INIT_PHASE_FULL_CYCLE = [0., 0., 0., 0.]
+# _MAX_TIME_SECONDS = 5
+
+# _INIT_LEG_STATE = (
+#     gait_generator_lib.LegState.STANCE,
+#     gait_generator_lib.LegState.STANCE,
+#     gait_generator_lib.LegState.STANCE,
+#     gait_generator_lib.LegState.STANCE,
+# )
+
+# Tripod
 _DUTY_FACTOR = [.75] * 4
 _INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.]
+_MAX_TIME_SECONDS = 5
 
 _INIT_LEG_STATE = (
     gait_generator_lib.LegState.STANCE,
@@ -41,6 +56,19 @@ _INIT_LEG_STATE = (
     gait_generator_lib.LegState.STANCE,
     gait_generator_lib.LegState.SWING,
 )
+
+
+# Trotting
+# _DUTY_FACTOR = [0.6] * 4
+# _INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
+# _MAX_TIME_SECONDS = 5
+
+# _INIT_LEG_STATE = (
+#     gait_generator_lib.LegState.SWING,
+#     gait_generator_lib.LegState.STANCE,
+#     gait_generator_lib.LegState.STANCE,
+#     gait_generator_lib.LegState.SWING,
+# )
 
 
 def _setup_controller(robot):
@@ -127,7 +155,7 @@ def _run_example():
     robot.Step(hybrid_action)
     current_time = robot.GetTimeSinceReset()
     timestamps.append(current_time)
-    time.sleep(0.003)
+    time.sleep(0.001)
 
   robot.Reset()
   robot.Terminate()
