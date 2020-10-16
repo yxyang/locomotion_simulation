@@ -14,8 +14,7 @@ from locomotion.agents.mpc_controller import gait_generator as gait_generator_li
 from locomotion.agents.mpc_controller import leg_controller
 
 # The position correction coefficients in Raibert's formula.
-_KP = 0.05
-
+_KP = np.array([0.01, 0.01, 0.01]) * 3
 # At the end of swing, we leave a small clearance to prevent unexpected foot
 # collision.
 _FOOT_CLEARANCE_M = 0.01
@@ -174,11 +173,14 @@ class RaibertSwingLegController(leg_controller.LegController):
       hip_offset = hip_positions[leg_id]
       twisting_vector = np.array((-hip_offset[1], hip_offset[0], 0))
       hip_horizontal_velocity = com_velocity + yaw_dot * twisting_vector
+      # print("Leg: {}, ComVel: {}, Yaw_dot: {}".format(leg_id, com_velocity,
+      #                                                 yaw_dot))
+      # print(hip_horizontal_velocity)
       target_hip_horizontal_velocity = (
           self.desired_speed + self.desired_twisting_speed * twisting_vector)
       foot_target_position = (
           hip_horizontal_velocity *
-          self._gait_generator.swing_duration[leg_id] / 2 - _KP *
+          self._gait_generator.stance_duration[leg_id] / 2 - _KP *
           (target_hip_horizontal_velocity - hip_horizontal_velocity)
       ) - self._desired_height + np.array((hip_offset[0], hip_offset[1], 0))
       foot_position = _gen_swing_foot_trajectory(

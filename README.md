@@ -1,6 +1,8 @@
-# Environment for A1 and Laikago Robot Simulation
+# Environment for A1 Robot Simulation
 
-This is the simulated environment for the A1 and Laikago quadruped robot. The codebase can be installed directly as a PIP package, or cloned for further configurations.
+This is the simulated environment and real-robot interface for the A1 robot. The codebase can be installed directly as a PIP package, or cloned for further configurations.
+
+The codebase also includes a whole-body controller that can walk the robot in both simulation and real world.
 
 ## Getting started
 To start, just clone the codebase, and install the dependencies using
@@ -13,7 +15,7 @@ Then, you can explore the environments by running:
 python -m locomotion.examples.test_env_gui \
 --robot_type=A1 \
 --motor_control_mode=Position \
---on_rack=False
+--on_rack=True
 ```
 
 The three commandline flags are:
@@ -46,6 +48,54 @@ env = gym.make('locomotion:A1GymEnv-v1', render=True)
 which will pop up the standard pybullet renderer.
 
 And you can always call env.render(mode='rgb_array') to generate frames.
+
+## Running on the real robot
+Since the [SDK](https://github.com/unitreerobotics/unitree_legged_sdk) from Unitree is implemented in C++, we find the optimal way of robot interfacing to be via C++-python interface using pybind11.
+
+### Step 1: Build and Test the robot interface
+
+To start, build the python interface by running the following:
+```bash
+cd third_party/unitree_legged_sdk
+mkdir build
+cd build
+cmake ..
+make
+```
+Then copy the built `robot_interface.XXX.so` file to the main directory (where you can see this README.md file).
+
+### Step 2: Setup correct permissions for non-sudo user
+Since the Unitree SDK requires memory locking and high-priority process, which is not usually granted without sudo, add the following lines to `/etc/security/limits.conf`:
+
+```
+<username> soft memlock unlimited
+<username> hard memlock unlimited
+<username> soft nice eip
+<username> hard nice eip
+```
+
+You may need to reboot the computer for the above changes to get into effect.
+
+### Step 3: Test robot interface.
+
+Test the python interfacing by running:
+`python -m locomotion.examples.test_robot_interface`
+
+If the previous steps were completed correctly, the script should finish without throwing any errors.
+
+Note that this code does *not* do anything on the actual robot.
+
+## Running the Whole-body MPC controller
+
+To see the whole-body MPC controller in sim, run:
+```bash
+python -m locomotion.examples.whole_body_controller_example
+```
+
+To see the whole-body MPC controller on the real robot, run:
+```bash
+python -m locomotion.examples.whole_body_controller_robot_example
+```
 
 ## Credits
 
