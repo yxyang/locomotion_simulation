@@ -4,10 +4,9 @@ __pycache__/
 *$py.class
 .idea/
 logs/
-third_party/unitree_legged_sdk/build
 
 # C extensions
-./*.so
+*.so
 
 # Distribution / packaging
 .Python
