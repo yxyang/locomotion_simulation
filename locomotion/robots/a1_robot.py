@@ -96,8 +96,8 @@ _LINK_A_FIELD_NUMBER = 3
 
 class A1Robot(a1.A1):
   """Interface for real A1 robot."""
-  MPC_BODY_MASS = 10
-  MPC_BODY_INERTIA = np.array((0.017, 0, 0, 0, 0.057, 0, 0, 0, 0.064)) * 2.
+  MPC_BODY_MASS = 108 / 9.8
+  MPC_BODY_INERTIA = np.array((0.24, 0, 0, 0, 0.80, 0, 0, 0, 1.00))
 
   MPC_BODY_HEIGHT = 0.24
   ACTION_CONFIG = [
@@ -271,6 +271,7 @@ class A1Robot(a1.A1):
         command.motorCmd[motor_id].Kd = 0
         command.motorCmd[motor_id].tau = motor_commands[motor_id]
     elif motor_control_mode == robot_config.MotorControlMode.HYBRID:
+      time_before = time.time()
       for motor_id in range(NUM_MOTORS):
         command.motorCmd[motor_id].mode = 0x0A
         command.motorCmd[motor_id].q = motor_commands[motor_id * 5]
@@ -278,10 +279,10 @@ class A1Robot(a1.A1):
         command.motorCmd[motor_id].dq = motor_commands[motor_id * 5 + 2]
         command.motorCmd[motor_id].Kd = motor_commands[motor_id * 5 + 3]
         command.motorCmd[motor_id].tau = motor_commands[motor_id * 5 + 4]
+      print(time.time() - time_before)
     else:
       raise ValueError('Unknown motor control mode for A1 robot: {}.'.format(
           motor_control_mode))
-
     self._robot_interface.send_command(command)
 
   def Reset(self, reload_urdf=True, default_motor_angles=None, reset_time=3.0):
@@ -316,3 +317,8 @@ class A1Robot(a1.A1):
 
   def Terminate(self):
     self._is_alive = False
+
+  def _StepInternal(self, action, motor_control_mode=None):
+    self.ApplyAction(action, motor_control_mode)
+    self.ReceiveObservation()
+    self._state_action_counter += 1

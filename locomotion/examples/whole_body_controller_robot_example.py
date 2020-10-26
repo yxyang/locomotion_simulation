@@ -39,32 +39,28 @@ FLAGS = flags.FLAGS
 # )
 
 # Tripod
-# _STANCE_DURATION_SECONDS = [
-#     0.7
-# ] * 4
-# _DUTY_FACTOR = [.8] * 4
-# _INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.75]
-# _MAX_TIME_SECONDS = 5
-
-# _INIT_LEG_STATE = (
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-# )
+_STANCE_DURATION_SECONDS = [
+    0.7
+] * 4
+_DUTY_FACTOR = [.8] * 4
+_INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.75]
+_INIT_LEG_STATE = (
+    gait_generator_lib.LegState.STANCE,
+    gait_generator_lib.LegState.STANCE,
+    gait_generator_lib.LegState.STANCE,
+    gait_generator_lib.LegState.STANCE,
+)
 
 # Trotting
-_STANCE_DURATION_SECONDS = [0.3] * 4
-_DUTY_FACTOR = [0.6] * 4
-_INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
-_MAX_TIME_SECONDS = 5
-
-_INIT_LEG_STATE = (
-    gait_generator_lib.LegState.SWING,
-    gait_generator_lib.LegState.STANCE,
-    gait_generator_lib.LegState.STANCE,
-    gait_generator_lib.LegState.SWING,
-)
+# _STANCE_DURATION_SECONDS = [0.3] * 4
+# _DUTY_FACTOR = [0.6] * 4
+# _INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
+# _INIT_LEG_STATE = (
+#     gait_generator_lib.LegState.SWING,
+#     gait_generator_lib.LegState.STANCE,
+#     gait_generator_lib.LegState.STANCE,
+#     gait_generator_lib.LegState.SWING,
+# )
 
 
 def _setup_controller(robot):
@@ -96,9 +92,7 @@ def _setup_controller(robot):
       state_estimator,
       desired_speed=desired_speed,
       desired_twisting_speed=desired_twisting_speed,
-      desired_body_height=robot.MPC_BODY_HEIGHT,
-      body_mass=robot.MPC_BODY_MASS,
-      body_inertia=robot.MPC_BODY_INERTIA)
+      desired_body_height=robot.MPC_BODY_HEIGHT)
 
   controller = locomotion_controller.LocomotionController(
       robot=robot,

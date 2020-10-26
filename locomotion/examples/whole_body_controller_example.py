@@ -27,6 +27,7 @@ flags.DEFINE_string("logdir", None, "where to log trajectories.")
 FLAGS = flags.FLAGS
 
 _NUM_SIMULATION_ITERATION_STEPS = 300
+_MAX_TIME_SECONDS = 30.
 
 _STANCE_DURATION_SECONDS = [
     0.3
@@ -35,38 +36,35 @@ _STANCE_DURATION_SECONDS = [
 # Standing
 # _DUTY_FACTOR = [1.] * 4
 # _INIT_PHASE_FULL_CYCLE = [0., 0., 0., 0.]
-# _MAX_TIME_SECONDS = 5
 
 # _INIT_LEG_STATE = (
 #     gait_generator_lib.LegState.STANCE,
 #     gait_generator_lib.LegState.STANCE,
 #     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.S,
+#     gait_generator_lib.LegState.STANCE,
 # )
 
 # Tripod
-# _DUTY_FACTOR = [.8] * 4
-# _INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.]
-# _MAX_TIME_SECONDS = 5
-
-# _INIT_LEG_STATE = (
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.SWING,
-# )
-
-# Trotting
-_DUTY_FACTOR = [0.6] * 4
-_INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
-_MAX_TIME_SECONDS = 1
+_DUTY_FACTOR = [.8] * 4
+_INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.]
 
 _INIT_LEG_STATE = (
-    gait_generator_lib.LegState.SWING,
+    gait_generator_lib.LegState.STANCE,
     gait_generator_lib.LegState.STANCE,
     gait_generator_lib.LegState.STANCE,
     gait_generator_lib.LegState.SWING,
 )
+
+# Trotting
+# _DUTY_FACTOR = [0.6] * 4
+# _INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
+
+# _INIT_LEG_STATE = (
+#     gait_generator_lib.LegState.SWING,
+#     gait_generator_lib.LegState.STANCE,
+#     gait_generator_lib.LegState.STANCE,
+#     gait_generator_lib.LegState.SWING,
+# )
 
 
 def _generate_example_linear_angular_speed(t):
@@ -116,9 +114,7 @@ def _setup_controller(robot):
       state_estimator,
       desired_speed=desired_speed,
       desired_twisting_speed=desired_twisting_speed,
-      desired_body_height=robot.MPC_BODY_HEIGHT,
-      body_mass=robot.MPC_BODY_MASS,
-      body_inertia=robot.MPC_BODY_INERTIA)
+      desired_body_height=robot.MPC_BODY_HEIGHT)
 
   controller = locomotion_controller.LocomotionController(
       robot=robot,
@@ -164,14 +160,20 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
   controller = _setup_controller(robot)
   controller.reset()
 
+  if FLAGS.logdir:
+    logdir = os.path.join(FLAGS.logdir,
+                          datetime.now().strftime('%Y_%m_%d_%H_%M_%S'))
+    os.makedirs(logdir)
+    video_path = os.path.join(logdir, 'video.mp4')
+    log_id = p.startStateLogging(p.STATE_LOGGING_VIDEO_MP4, video_path)
+
   current_time = robot.GetTimeSinceReset()
   com_vels, imu_rates, actions = [], [], []
   while current_time < max_time:
     start_time_robot = current_time
     start_time_wall = time.time()
     # Updates the controller behavior parameters.
-    lin_speed, ang_speed = (
-        0., 0., 0.), 0.  #_generate_example_linear_angular_speed(current_time)
+    lin_speed, ang_speed = _generate_example_linear_angular_speed(current_time)
     _update_controller_params(controller, lin_speed, ang_speed)
     controller.update()
     hybrid_action, _ = controller.get_action()
@@ -188,9 +190,7 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
       time.sleep(expected_duration - actual_duration)
 
   if FLAGS.logdir:
-    logdir = os.path.join(FLAGS.logdir,
-                          datetime.now().strftime('%Y_%m_%d_%H_%M_%S'))
-    os.makedirs(logdir)
+    p.stopStateLogging(log_id)
     np.savez(os.path.join(logdir, 'action.npz'),
              action=actions,
              com_vels=com_vels,

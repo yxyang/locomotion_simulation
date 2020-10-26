@@ -90,7 +90,7 @@ class A1(minitaur.Minitaur):
   # when the replan frequency is low (e.g. using a less beefy CPU).
   MPC_BODY_MASS = 108 / 9.8
   MPC_BODY_INERTIA = np.array(
-      (0.017, 0, 0, 0, 0.057, 0, 0, 0, 0.064)) * 0.1#* 2
+      (0.017, 0, 0, 0, 0.057, 0, 0, 0, 0.064)) * 4.
   MPC_BODY_HEIGHT = 0.24
   MPC_VELOCITY_MULTIPLIER = 0.5
   ACTION_CONFIG = [

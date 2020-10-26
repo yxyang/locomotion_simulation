@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 
 from typing import Any
+import numpy as np
 
 class LocomotionController(object):
   """Generates the quadruped locomotion.
@@ -84,5 +85,6 @@ class LocomotionController(object):
       else:
         assert joint_id in stance_action
         action.extend(stance_action[joint_id])
+    action = np.array(action, dtype=np.float32)
 
     return action, dict(qp_sol=qp_sol)
