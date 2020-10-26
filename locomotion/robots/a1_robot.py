@@ -28,7 +28,6 @@ from locomotion.robots import minitaur
 from locomotion.robots import robot_config
 from locomotion.envs import locomotion_gym_config
 from robot_interface import RobotInterface  # pytype: disable=import-error
-from robot_interface import LowCmd  # pytype: disable=import-error
 
 NUM_MOTORS = 12
 NUM_LEGS = 4
@@ -161,9 +160,7 @@ class A1Robot(a1.A1):
 
     # Initiate UDP for robot state and actions
     self._robot_interface = RobotInterface()
-    command = LowCmd()
-    command.levelFlag = 0xff  # pylint: disable=C0103
-    self._robot_interface.send_command(command)
+    self._robot_interface.send_command(np.zeros(60, dtype=np.float32))
 
     kwargs['on_rack'] = True
     super(A1Robot, self).__init__(pybullet_client,
@@ -251,38 +248,21 @@ class A1Robot(a1.A1):
     if motor_control_mode is None:
       motor_control_mode = self._motor_control_mode
 
-    command = LowCmd()
-    command.levelFlag = 0xff  #pylint:disable=invalid-name
-
+    command = np.zeros(60, dtype=np.float32)
     if motor_control_mode == robot_config.MotorControlMode.POSITION:
       for motor_id in range(NUM_MOTORS):
-        command.motorCmd[motor_id].mode = 0x0A
-        command.motorCmd[motor_id].q = motor_commands[motor_id]
-        command.motorCmd[motor_id].Kp = self.motor_kps[motor_id]
-        command.motorCmd[motor_id].dq = 0
-        command.motorCmd[motor_id].Kd = self.motor_kds[motor_id]
-        command.motorCmd[motor_id].tau = 0
+        command[motor_id * 5] = motor_commands[motor_id]
+        command[motor_id * 5 + 1] = self.motor_kps[motor_id]
+        command[motor_id * 5 + 3] = self.motor_kds[motor_id]
     elif motor_control_mode == robot_config.MotorControlMode.TORQUE:
       for motor_id in range(NUM_MOTORS):
-        command.motorCmd[motor_id].mode = 0x0A
-        command.motorCmd[motor_id].q = 0
-        command.motorCmd[motor_id].Kp = 0
-        command.motorCmd[motor_id].dq = 0
-        command.motorCmd[motor_id].Kd = 0
-        command.motorCmd[motor_id].tau = motor_commands[motor_id]
+        command[motor_id * 5 + 4] = motor_commands[motor_id]
     elif motor_control_mode == robot_config.MotorControlMode.HYBRID:
-      time_before = time.time()
-      for motor_id in range(NUM_MOTORS):
-        command.motorCmd[motor_id].mode = 0x0A
-        command.motorCmd[motor_id].q = motor_commands[motor_id * 5]
-        command.motorCmd[motor_id].Kp = motor_commands[motor_id * 5 + 1]
-        command.motorCmd[motor_id].dq = motor_commands[motor_id * 5 + 2]
-        command.motorCmd[motor_id].Kd = motor_commands[motor_id * 5 + 3]
-        command.motorCmd[motor_id].tau = motor_commands[motor_id * 5 + 4]
-      print(time.time() - time_before)
+      command = np.array(motor_commands, dtype=np.float32)
     else:
       raise ValueError('Unknown motor control mode for A1 robot: {}.'.format(
           motor_control_mode))
+
     self._robot_interface.send_command(command)
 
   def Reset(self, reload_urdf=True, default_motor_angles=None, reset_time=3.0):
