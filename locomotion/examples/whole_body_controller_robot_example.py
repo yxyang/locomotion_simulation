@@ -11,7 +11,6 @@ import pybullet  # pytype:disable=import-error
 import pybullet_data
 from pybullet_utils import bullet_client
 import scipy
-import time
 
 from locomotion.agents.mpc_controller import com_velocity_estimator
 from locomotion.agents.mpc_controller import gait_generator as gait_generator_lib
@@ -152,18 +151,16 @@ def _run_example():
 
   while current_time - start_time < FLAGS.max_time_secs:
     # Updates the controller behavior parameters.
-    lin_speed, ang_speed = (0., 0., 0.), 0.
-    #lin_speed, ang_speed = _generate_example_linear_angular_speed(current_time)
+    # lin_speed, ang_speed = (0., 0., 0.), 0.
+    lin_speed, ang_speed = _generate_example_linear_angular_speed(current_time)
     _update_controller_params(controller, lin_speed, ang_speed)
 
     # Needed before every call to get_action().
     controller.update()
     current_time = robot.GetTimeSinceReset()
-    time_before = time.time()
     hybrid_action, info = controller.get_action()
     actions.append(hybrid_action)
     robot.Step(hybrid_action)
-    print(time.time() - time_before)
     states.append(
         dict(timestamp=robot.GetTimeSinceReset(),
              base_rpy=robot.GetBaseRollPitchYaw(),
@@ -176,7 +173,6 @@ def _run_example():
              contacts=robot.GetFootContacts(),
              qp_sol=info['qp_sol']))
 
-  # robot.Reset()
   robot.Terminate()
   if FLAGS.logdir:
     logdir = os.path.join(FLAGS.logdir,

@@ -45,26 +45,26 @@ _STANCE_DURATION_SECONDS = [
 # )
 
 # Tripod
-_DUTY_FACTOR = [.8] * 4
-_INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.]
-
-_INIT_LEG_STATE = (
-    gait_generator_lib.LegState.STANCE,
-    gait_generator_lib.LegState.STANCE,
-    gait_generator_lib.LegState.STANCE,
-    gait_generator_lib.LegState.SWING,
-)
-
-# Trotting
-# _DUTY_FACTOR = [0.6] * 4
-# _INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
+# _DUTY_FACTOR = [.8] * 4
+# _INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.]
 
 # _INIT_LEG_STATE = (
-#     gait_generator_lib.LegState.SWING,
+#     gait_generator_lib.LegState.STANCE,
 #     gait_generator_lib.LegState.STANCE,
 #     gait_generator_lib.LegState.STANCE,
 #     gait_generator_lib.LegState.SWING,
 # )
+
+# Trotting
+_DUTY_FACTOR = [0.6] * 4
+_INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
+
+_INIT_LEG_STATE = (
+    gait_generator_lib.LegState.SWING,
+    gait_generator_lib.LegState.STANCE,
+    gait_generator_lib.LegState.STANCE,
+    gait_generator_lib.LegState.SWING,
+)
 
 
 def _generate_example_linear_angular_speed(t):
