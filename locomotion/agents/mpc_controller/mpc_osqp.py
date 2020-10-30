@@ -5,16 +5,19 @@ https://arxiv.org/abs/2009.10019
 """
 
 import numpy as np
+import numba
 import quadprog  # pytype:disable=import-error
 np.set_printoptions(precision=3, suppress=True)
 
 ACC_WEIGHT = np.array([1., 1., 1., 10., 10, 1.])
 
 
+# @numba.jit(nopython=True, parallel=True, cache=True)
 def compute_mass_matrix(robot_mass, robot_inertia, foot_positions):
-  yaw = 0.  # Set yaw to 0 for now as all commands are local.
-  rot_z = np.array([[np.cos(yaw), np.sin(yaw), 0.],
-                    [-np.sin(yaw), np.cos(yaw), 0.], [0., 0., 1.]])
+  # yaw = 0.  # Set yaw to 0 for now as all commands are local.
+  # rot_z = np.array([[np.cos(yaw), np.sin(yaw), 0.],
+  #                   [-np.sin(yaw), np.cos(yaw), 0.], [0., 0., 1.]])
+  rot_z = np.eye(3)
 
   inv_mass = np.eye(3) / robot_mass
   inv_inertia = np.linalg.inv(robot_inertia)
@@ -30,7 +33,7 @@ def compute_mass_matrix(robot_mass, robot_inertia, foot_positions):
              3] = rot_z.T.dot(inv_inertia).dot(foot_position_skew)
   return mass_mat
 
-
+# @numba.jit(nopython=True, parallel=True, cache=True)
 def compute_constraint_matrix(mpc_body_mass,
                               contacts,
                               friction_coef=0.8,
@@ -61,6 +64,7 @@ def compute_constraint_matrix(mpc_body_mass,
   return A.T, lb
 
 
+# @numba.jit(nopython=True, cache=True)
 def compute_objective_matrix(mass_matrix, desired_acc, acc_weight, reg_weight):
   g = np.array([0., 0., 9.8, 0., 0., 0.])
   Q = np.diag(acc_weight)

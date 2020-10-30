@@ -87,7 +87,7 @@ _BODY_B_FIELD_NUMBER = 2
 _LINK_A_FIELD_NUMBER = 3
 
 
-@numba.jit(nopython=True)
+@numba.jit(nopython=True, cache=True)
 def foot_position_in_hip_frame_to_joint_angle(foot_position, l_hip_sign=1):
   l_up = 0.2
   l_low = 0.2
@@ -103,8 +103,37 @@ def foot_position_in_hip_frame_to_joint_angle(foot_position, l_hip_sign=1):
   theta_ab = np.arctan2(s1, c1)
   return np.array([theta_ab, theta_hip, theta_knee])
 
+@numba.jit(nopython=True, cache=True)
+def foot_position_in_hip_frame(angles, l_hip_sign=1):
+  theta_ab, theta_hip, theta_knee = angles[0], angles[1], angles[2]
+  l_up = 0.2
+  l_low = 0.2
+  l_hip = 0.08505 * l_hip_sign
+  leg_distance = np.sqrt(l_up**2 + l_low** 2 + 2 * l_up * l_low * np.cos(theta_knee))
+  eff_swing = theta_hip + theta_knee / 2
+
+  off_x_hip = -leg_distance * np.sin(eff_swing)
+  off_z_hip = -leg_distance * np.cos(eff_swing)
+  off_y_hip = l_hip
+
+  off_x = off_x_hip
+  off_y = np.cos(theta_ab) * off_y_hip - np.sin(theta_ab) * off_z_hip
+  off_z = np.sin(theta_ab) * off_y_hip + np.cos(theta_ab) * off_z_hip
+  return np.array([off_x, off_y, off_z])
+
+  # rot_ab = rot_x_mat(theta_ab)
+  # return rot_ab.dot([off_x_hip, off_y_hip, off_z_hip])
 # For JIT compilation
-foot_position_in_hip_frame_to_joint_angle(np.zeros(3))
+foot_position_in_hip_frame_to_joint_angle(np.random.uniform(size=3), 1)
+foot_position_in_hip_frame_to_joint_angle(np.random.uniform(size=3), -1)
+
+@numba.jit(nopython=True, cache=True, parallel=True)
+def foot_positions_in_base_frame(foot_angles):
+  foot_angles = foot_angles.reshape((4, 3))
+  foot_positions = np.zeros((4, 3))
+  for i in range(4):
+    foot_positions[i] = foot_position_in_hip_frame(foot_angles[i], l_hip_sign=(-1)**(i+1))
+  return foot_positions + HIP_OFFSETS
 
 class A1(minitaur.Minitaur):
   """A simulation for the Laikago robot."""
@@ -434,3 +463,8 @@ class A1(minitaur.Minitaur):
     # Return the joing index (the same as when calling GetMotorAngles) as well
     # as the angles.
     return joint_position_idxs, joint_angles.tolist()
+
+  # def GetFootPositionsInBaseFrame(self):
+  #   """Get the robot's foot position in the base frame."""
+  #   motor_angles = self.GetMotorAngles()
+  #   return foot_positions_in_base_frame(motor_angles)
