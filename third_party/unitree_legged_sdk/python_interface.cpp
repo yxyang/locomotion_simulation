@@ -16,7 +16,7 @@ class RobotInterface
 {
 public:
     RobotInterface() : safe(LeggedType::A1), udp(LOWLEVEL){
-        InitEnvironment();
+        // InitEnvironment();
     }
     LowState ReceiveObservation();
     void SendCommand(std::array<float, 60> motorcmd);

@@ -11,36 +11,33 @@ np.set_printoptions(precision=3, suppress=True)
 ACC_WEIGHT = np.array([1., 1., 1., 10., 10, 1.])
 
 
-def make_skew(x):
-  return np.array([[0, -x[2], x[1]], [x[2], 0, -x[0]], [-x[1], x[0], 0]])
-
-
-def compute_mass_matrix(robot):
-  robot_mass = robot.MPC_BODY_MASS
-  robot_inertia = np.array(robot.MPC_BODY_INERTIA).reshape((3, 3))
-  foot_positions = robot.GetFootPositionsInBaseFrame()
+def compute_mass_matrix(robot_mass, robot_inertia, foot_positions):
   yaw = 0.  # Set yaw to 0 for now as all commands are local.
-  rot_z = np.array([[np.cos(yaw), np.sin(yaw), 0],
-                    [-np.sin(yaw), np.cos(yaw), 0], [0, 0, 1]])
+  rot_z = np.array([[np.cos(yaw), np.sin(yaw), 0.],
+                    [-np.sin(yaw), np.cos(yaw), 0.], [0., 0., 1.]])
 
   inv_mass = np.eye(3) / robot_mass
   inv_inertia = np.linalg.inv(robot_inertia)
   mass_mat = np.zeros((6, 12))
 
   for leg_id in range(4):
-    mass_mat[:3, leg_id * 3:leg_id * 3 + 3] = inv_mass  #.copy()
-    mass_mat[3:6, leg_id * 3:leg_id * 3 + 3] = rot_z.T.dot(inv_inertia).dot(
-        make_skew(foot_positions[leg_id]))
+    mass_mat[:3, leg_id * 3:leg_id * 3 + 3] = inv_mass
+
+    x = foot_positions[leg_id]
+    foot_position_skew = np.array([[0, -x[2], x[1]], [x[2], 0, -x[0]],
+                                   [-x[1], x[0], 0]])
+    mass_mat[3:6, leg_id * 3:leg_id * 3 +
+             3] = rot_z.T.dot(inv_inertia).dot(foot_position_skew)
   return mass_mat
 
 
-def compute_constraint_matrix(robot,
+def compute_constraint_matrix(mpc_body_mass,
                               contacts,
                               friction_coef=0.8,
                               f_min_ratio=0.1,
                               f_max_ratio=10):
-  f_min = f_min_ratio * robot.MPC_BODY_MASS * 9.8
-  f_max = f_max_ratio * robot.MPC_BODY_MASS * 9.8
+  f_min = f_min_ratio * mpc_body_mass * 9.8
+  f_max = f_max_ratio * mpc_body_mass * 9.8
   A = np.zeros((24, 12))
   lb = np.zeros(24)
   for leg_id in range(4):
@@ -49,7 +46,8 @@ def compute_constraint_matrix(robot,
     if contacts[leg_id]:
       lb[leg_id * 2], lb[leg_id * 2 + 1] = f_min, -f_max
     else:
-      lb[leg_id * 2], lb[leg_id * 2 + 1] = -1e-7, -1e-7
+      lb[leg_id * 2] = -1e-7
+      lb[leg_id * 2 + 1] = -1e-7
 
   # Friction constraints
   for leg_id in range(4):
@@ -63,14 +61,13 @@ def compute_constraint_matrix(robot,
   return A.T, lb
 
 
-def compute_objective_matrix(robot, desired_acc, acc_weight, reg_weight):
-  M = compute_mass_matrix(robot)
+def compute_objective_matrix(mass_matrix, desired_acc, acc_weight, reg_weight):
   g = np.array([0., 0., 9.8, 0., 0., 0.])
   Q = np.diag(acc_weight)
   R = np.ones(12) * reg_weight
 
-  quad_term = M.T.dot(Q).dot(M) + R
-  linear_term = 1 * (g + desired_acc).T.dot(Q).dot(M)
+  quad_term = mass_matrix.T.dot(Q).dot(mass_matrix) + R
+  linear_term = 1 * (g + desired_acc).T.dot(Q).dot(mass_matrix)
   return quad_term, linear_term
 
 
@@ -82,9 +79,14 @@ def compute_contact_force(robot,
                           friction_coef=0.45,
                           f_min_ratio=0.1,
                           f_max_ratio=10.):
-  G, a = compute_objective_matrix(robot, desired_acc, acc_weight, reg_weight)
-  C, b = compute_constraint_matrix(robot, contacts, friction_coef, f_min_ratio,
-                                   f_max_ratio)
+  mass_matrix = compute_mass_matrix(
+      robot.MPC_BODY_MASS,
+      np.array(robot.MPC_BODY_INERTIA).reshape((3, 3)),
+      robot.GetFootPositionsInBaseFrame())
+  G, a = compute_objective_matrix(mass_matrix, desired_acc, acc_weight,
+                                  reg_weight)
+  C, b = compute_constraint_matrix(robot.MPC_BODY_MASS, contacts,
+                                   friction_coef, f_min_ratio, f_max_ratio)
   G += 1e-4 * np.eye(12)
   result = quadprog.solve_qp(G, a, C, b)
   return -result[0].reshape((4, 3))

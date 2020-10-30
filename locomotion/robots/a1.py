@@ -12,10 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Pybullet simulation of a Laikago robot."""
 import math
 import re
+import numba
 import numpy as np
 import pybullet as pyb  # pytype: disable=import-error
 
@@ -60,6 +60,11 @@ _DEFAULT_HIP_POSITIONS = (
     (-0.17, 0.14, 0),
 )
 
+COM_OFFSET = -np.array([0.012731, 0.002186, 0.000515])
+HIP_OFFSETS = np.array([[0.183, -0.047, 0.], [0.183, 0.047, 0.],
+                        [-0.183, -0.047, 0.], [-0.183, 0.047, 0.]
+                        ]) + COM_OFFSET
+
 ABDUCTION_P_GAIN = 100.0
 ABDUCTION_D_GAIN = 1.
 HIP_P_GAIN = 100.0
@@ -82,6 +87,25 @@ _BODY_B_FIELD_NUMBER = 2
 _LINK_A_FIELD_NUMBER = 3
 
 
+@numba.jit(nopython=True)
+def foot_position_in_hip_frame_to_joint_angle(foot_position, l_hip_sign=1):
+  l_up = 0.2
+  l_low = 0.2
+  l_hip = 0.08505 * l_hip_sign
+  x, y, z = foot_position[0], foot_position[1], foot_position[2]
+  theta_knee = -np.arccos(
+      (x**2 + y**2 + z**2 - l_hip**2 - l_low**2 - l_up**2) /
+      (2 * l_low * l_up))
+  l = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(theta_knee))
+  theta_hip = np.arcsin(-x / l) - theta_knee / 2
+  c1 = l_hip * y - l * np.cos(theta_hip + theta_knee / 2) * z
+  s1 = l * np.cos(theta_hip + theta_knee / 2) * y + l_hip * z
+  theta_ab = np.arctan2(s1, c1)
+  return np.array([theta_ab, theta_hip, theta_knee])
+
+# For JIT compilation
+foot_position_in_hip_frame_to_joint_angle(np.zeros(3))
+
 class A1(minitaur.Minitaur):
   """A simulation for the Laikago robot."""
 
@@ -89,8 +113,7 @@ class A1(minitaur.Minitaur):
   # doesn't seem to matter much. However, these values should be better tuned
   # when the replan frequency is low (e.g. using a less beefy CPU).
   MPC_BODY_MASS = 108 / 9.8
-  MPC_BODY_INERTIA = np.array(
-      (0.017, 0, 0, 0, 0.057, 0, 0, 0, 0.064)) * 4.
+  MPC_BODY_INERTIA = np.array((0.017, 0, 0, 0, 0.057, 0, 0, 0, 0.064)) * 4.
   MPC_BODY_HEIGHT = 0.24
   MPC_VELOCITY_MULTIPLIER = 0.5
   ACTION_CONFIG = [
@@ -162,7 +185,6 @@ class A1(minitaur.Minitaur):
         HIP_D_GAIN, KNEE_D_GAIN, ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN,
         ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN
     ]
-
 
     super(A1, self).__init__(
         pybullet_client=pybullet_client,
@@ -371,3 +393,44 @@ class A1(minitaur.Minitaur):
   def GetConstants(cls):
     del cls
     return laikago_constants
+
+  def ComputeMotorAnglesFromFootLocalPosition(self, leg_id,
+                                              foot_local_position):
+    """Use IK to compute the motor angles, given the foot link's local position.
+
+    Args:
+      leg_id: The leg index.
+      foot_local_position: The foot link's position in the base frame.
+
+    Returns:
+      A tuple. The position indices and the angles for all joints along the
+      leg. The position indices is consistent with the joint orders as returned
+      by GetMotorAngles API.
+    """
+    assert len(self._foot_link_ids) == self.num_legs
+    # toe_id = self._foot_link_ids[leg_id]
+
+    motors_per_leg = self.num_motors // self.num_legs
+    joint_position_idxs = list(
+        range(leg_id * motors_per_leg,
+              leg_id * motors_per_leg + motors_per_leg))
+
+    joint_angles = foot_position_in_hip_frame_to_joint_angle(
+        foot_local_position - HIP_OFFSETS[leg_id],
+        l_hip_sign=(-1)**(leg_id + 1))
+    # kinematics.joint_angles_from_link_position(
+    #     robot=self,
+    #     link_position=foot_local_position,
+    #     link_id=toe_id,
+    #     joint_ids=joint_position_idxs,
+    # )
+
+    # Joint offset is necessary for Laikago.
+    joint_angles = np.multiply(
+        np.asarray(joint_angles) -
+        np.asarray(self._motor_offset)[joint_position_idxs],
+        self._motor_direction[joint_position_idxs])
+
+    # Return the joing index (the same as when calling GetMotorAngles) as well
+    # as the angles.
+    return joint_position_idxs, joint_angles.tolist()

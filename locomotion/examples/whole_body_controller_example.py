@@ -185,7 +185,6 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
     current_time = robot.GetTimeSinceReset()
     expected_duration = current_time - start_time_robot
     actual_duration = time.time() - start_time_wall
-
     if actual_duration < expected_duration:
       time.sleep(expected_duration - actual_duration)
 

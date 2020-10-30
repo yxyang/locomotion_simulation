@@ -49,8 +49,9 @@ jupyter-http-over-ws==0.0.8
 jupyterlab-pygments==0.1.1
 kiwisolver==1.2.0
 -e git+https://github.com/lcm-proj/lcm/@e7ab2d568510f7ec3018e1e0224c56654a4a42ef#egg=lcm&subdirectory=lcm-python
+llvmlite==0.34.0
 lockfile==0.12.2
--e git+git@github.com:yxyang/locomotion_simulation.git@d356553b80e1a15c9af73ef79a03941bd87a1fc4#egg=locomotion_simulation
+-e git+git@github.com:yxyang/locomotion_simulation.git@af50b47376e41851f92424ea78c4cb80e1cad9c4#egg=locomotion_simulation
 lxml==4.5.2
 MarkupSafe==1.1.1
 matplotlib==3.3.2
@@ -65,6 +66,7 @@ networkx==2.5
 ninja==1.10.0.post2
 nodeenv==1.5.0
 notebook==6.1.4
+numba==0.51.2
 numpy==1.19.2
 osqp==0.6.1
 packaging==20.3

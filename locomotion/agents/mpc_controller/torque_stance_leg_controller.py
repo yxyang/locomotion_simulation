@@ -8,6 +8,7 @@ from __future__ import print_function
 from typing import Any, Sequence, Tuple
 
 import numpy as np
+# import time
 
 from locomotion.agents.mpc_controller import gait_generator as gait_generator_lib
 from locomotion.agents.mpc_controller import leg_controller
