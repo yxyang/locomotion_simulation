@@ -5,7 +5,7 @@ https://arxiv.org/abs/2009.10019
 """
 
 import numpy as np
-import numba
+# import numba
 import quadprog  # pytype:disable=import-error
 np.set_printoptions(precision=3, suppress=True)
 
