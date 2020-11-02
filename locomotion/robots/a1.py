@@ -54,10 +54,10 @@ PI = math.pi
 
 MAX_MOTOR_ANGLE_CHANGE_PER_STEP = 0.2
 _DEFAULT_HIP_POSITIONS = (
-    (0.17, -0.14, 0),
-    (0.17, 0.14, 0),
-    (-0.17, -0.14, 0),
-    (-0.17, 0.14, 0),
+    (0.17, -0.135, 0),
+    (0.17, 0.13, 0),
+    (-0.195, -0.15, 0),
+    (-0.195, 0.13, 0),
 )
 
 COM_OFFSET = -np.array([0.012731, 0.002186, 0.000515])
@@ -493,10 +493,10 @@ class A1(minitaur.Minitaur):
     # as the angles.
     return joint_position_idxs, joint_angles.tolist()
 
-  # def GetFootPositionsInBaseFrame(self):
-  #   """Get the robot's foot position in the base frame."""
-  #   motor_angles = self.GetMotorAngles()
-  #   return foot_positions_in_base_frame(motor_angles)
+  def GetFootPositionsInBaseFrame(self):
+    """Get the robot's foot position in the base frame."""
+    motor_angles = self.GetMotorAngles()
+    return foot_positions_in_base_frame(motor_angles)
 
   def ComputeJacobian(self, leg_id):
     """Compute the Jacobian for a given leg."""

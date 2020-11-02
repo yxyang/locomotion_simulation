@@ -143,7 +143,7 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
   #     wrap_trajectory_generator=False)
   # robot = env.robot
   # p = env.pybullet_client
-  p = bullet_client.BulletClient(connection_mode=pybullet.GUI)
+  p = bullet_client.BulletClient(connection_mode=pybullet.DIRECT)
   p.setPhysicsEngineParameter(numSolverIterations=30)
   p.setTimeStep(0.001)
   p.setGravity(0, 0, -9.8)

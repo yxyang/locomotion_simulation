@@ -154,7 +154,6 @@ def _run_example():
   while current_time - start_time < FLAGS.max_time_secs:
     # Updates the controller behavior parameters.
     # lin_speed, ang_speed = (0., 0., 0.), 0.
-    time_before = time.time()
     lin_speed, ang_speed = _generate_example_linear_angular_speed(current_time)
     _update_controller_params(controller, lin_speed, ang_speed)
 
@@ -175,7 +174,6 @@ def _run_example():
              motor_vels=robot.GetMotorVelocities(),
              contacts=robot.GetFootContacts(),
              qp_sol=info['qp_sol']))
-    print(time.time() - time_before)
 
   robot.Terminate()
   if FLAGS.logdir:

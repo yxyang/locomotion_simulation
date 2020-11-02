@@ -58,10 +58,10 @@ PI = math.pi
 
 MAX_MOTOR_ANGLE_CHANGE_PER_STEP = 0.2
 _DEFAULT_HIP_POSITIONS = (
-    (0.17, -0.14, 0),
-    (0.17, 0.14, 0),
-    (-0.17, -0.14, 0),
-    (-0.17, 0.14, 0),
+    (0.17, -0.135, 0),
+    (0.17, 0.13, 0),
+    (-0.195, -0.15, 0),
+    (-0.195, 0.13, 0),
 )
 
 ABDUCTION_P_GAIN = 100.0
@@ -185,7 +185,7 @@ class A1Robot(a1.A1):
     self._joint_states = np.array(
         list(zip(self._motor_angles, self._motor_velocities)))
     if self._init_complete:
-      self._SetRobotStateInSim(self._motor_angles, self._motor_velocities)
+      # self._SetRobotStateInSim(self._motor_angles, self._motor_velocities)
       self._velocity_estimator.update(self._raw_state)
 
   def _SetRobotStateInSim(self, motor_angles, motor_velocities):
