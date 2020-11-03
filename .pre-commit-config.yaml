@@ -1,12 +1,6 @@
 repos:
 - repo: local
   hooks:
-  - id: pytype
-    name: pytype
-    entry: pytype
-    language: system
-    types: [python]
-    pass_filenames: false
   - id: update-requirements-txt
     name: update-requirements-txt
     entry: pip

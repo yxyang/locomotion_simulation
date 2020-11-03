@@ -11,14 +11,14 @@ import pybullet  # pytype:disable=import-error
 import pybullet_data
 from pybullet_utils import bullet_client
 import scipy
-import time
+# import time
 
-from locomotion.agents.mpc_controller import com_velocity_estimator
-from locomotion.agents.mpc_controller import gait_generator as gait_generator_lib
-from locomotion.agents.mpc_controller import locomotion_controller
-from locomotion.agents.mpc_controller import openloop_gait_generator
-from locomotion.agents.mpc_controller import raibert_swing_leg_controller
-from locomotion.agents.mpc_controller import torque_stance_leg_controller
+from locomotion.agents.whole_body_controller import com_velocity_estimator
+from locomotion.agents.whole_body_controller import gait_generator as gait_generator_lib
+from locomotion.agents.whole_body_controller import locomotion_controller
+from locomotion.agents.whole_body_controller import openloop_gait_generator
+from locomotion.agents.whole_body_controller import raibert_swing_leg_controller
+from locomotion.agents.whole_body_controller import torque_stance_leg_controller
 
 from locomotion.robots import a1_robot
 from locomotion.robots import robot_config

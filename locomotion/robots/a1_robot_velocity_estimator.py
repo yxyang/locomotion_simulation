@@ -21,7 +21,7 @@ class VelocityEstimator:
                accelerometer_variance=0.1,
                sensor_variance=0.1,
                initial_variance=0.1,
-               moving_window_filter_size=60):
+               moving_window_filter_size=120):
     """Initiates the velocity estimator.
 
     See filterpy documentation in the link below for more details.
