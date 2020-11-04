@@ -104,8 +104,9 @@ def _setup_controller(robot):
       duty_factor=_DUTY_FACTOR,
       initial_leg_phase=_INIT_PHASE_FULL_CYCLE,
       initial_leg_state=_INIT_LEG_STATE)
-  state_estimator = com_velocity_estimator.COMVelocityEstimator(robot,
-                                                                window_size=20)
+  window_size = 20 if not FLAGS.use_real_robot else 1
+  state_estimator = com_velocity_estimator.COMVelocityEstimator(
+      robot, window_size=window_size)
   sw_controller = raibert_swing_leg_controller.RaibertSwingLegController(
       robot,
       gait_generator,
@@ -173,6 +174,7 @@ def main(argv):
                   action_repeat=1)
 
   controller = _setup_controller(robot)
+
   controller.reset()
   if FLAGS.use_gamepad:
     gamepad = gamepad_reader.Gamepad()
