@@ -1,4 +1,4 @@
-# Environment for A1 Robot Simulation
+# Python Environments for Unitree A1 Robot
 
 This is the simulated environment and real-robot interface for the A1 robot. The codebase can be installed directly as a PIP package, or cloned for further configurations.
 
@@ -64,8 +64,8 @@ make
 ```
 Then copy the built `robot_interface.XXX.so` file to the main directory (where you can see this README.md file).
 
-### Step 2: Setup correct permissions for non-sudo user
-Since the Unitree SDK requires memory locking and high-priority process, which is not usually granted without sudo, add the following lines to `/etc/security/limits.conf`:
+### Step 2: (Optional) Setup correct permissions for non-sudo user
+Since the Unitree SDK requires memory locking and high process priority, root priority with `sudo` is usually required to execute commands. As an alternative, adding the following lines to `/etc/security/limits.confg` might allow you to run the SDK without `sudo`.
 
 ```
 <username> soft memlock unlimited
@@ -85,17 +85,27 @@ If the previous steps were completed correctly, the script should finish without
 
 Note that this code does *not* do anything on the actual robot.
 
-## Running the Whole-body MPC controller
+It's also recommended to try running:
+`python -m locomotion.examples.a1_robot_exercise`
 
-To see the whole-body MPC controller in sim, run:
+which executes open-loop sinusoidal position commands so that the robot can stand up and down.
+
+## Running the Whole-body controller
+
+To see the whole-body controller, run:
 ```bash
-python -m locomotion.examples.whole_body_controller_example
+python -m locomotion.examples.whole_body_controller_example --use_gamepad=False --show_gui=True --use_real_robot=False --max_time_secs=10
 ```
 
-To see the whole-body MPC controller on the real robot, run:
-```bash
-python -m locomotion.examples.whole_body_controller_robot_example
-```
+There are 4 commandline flags:
+
+`use_real_robot`: `True` for using the real robot, `False` for using the simulator.
+
+`show_gui`: (simulation only) whether to visualize the simulated robot in GUI.
+
+`use_gamepad`: whether to control the robot using a gamepad (e.g. Logitech F710), or let the robot follow a demo trajectory.
+
+`max_time_secs`: the amount of time to execute the controller. For real robot testing, it's recommended to start with a small value of `max_time_secs` and gradually increase it.
 
 ## Credits
 
