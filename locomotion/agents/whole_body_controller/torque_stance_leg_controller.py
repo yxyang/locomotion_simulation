@@ -8,7 +8,7 @@ from __future__ import print_function
 from typing import Any, Sequence, Tuple
 
 import numpy as np
-# import time
+import time
 
 from locomotion.agents.whole_body_controller import gait_generator as gait_generator_lib
 from locomotion.agents.whole_body_controller import leg_controller
@@ -65,6 +65,8 @@ class TorqueStanceLegController(leg_controller.LegController):
     self._desired_body_height = desired_body_height
     self._num_legs = num_legs
     self._friction_coeffs = np.array(friction_coeffs)
+    self._qp_torque_optimizer = qp_torque_optimizer.QPTorqueOptimizer(
+        robot.MPC_BODY_MASS, robot.MPC_BODY_INERTIA)
 
   def reset(self, current_time):
     del current_time
@@ -91,6 +93,7 @@ class TorqueStanceLegController(leg_controller.LegController):
   def get_action(self):
     """Computes the torque for stance legs."""
     # Actual q and dq
+    time_before = time.time()
     contacts = np.array(
         [(leg_state in (gait_generator_lib.LegState.STANCE,
                         gait_generator_lib.LegState.EARLY_CONTACT))
@@ -120,8 +123,10 @@ class TorqueStanceLegController(leg_controller.LegController):
     # Desired ddq
     desired_ddq = KP * (desired_q - robot_q) + KD * (desired_dq - robot_dq)
     desired_ddq = np.clip(desired_ddq, MIN_DDQ, MAX_DDQ)
-    contact_forces = qp_torque_optimizer.compute_contact_force(
-        self._robot, desired_ddq, contacts=contacts)
+    print("Before QP: {}".format(time.time() - time_before))
+    contact_forces = self._qp_torque_optimizer.compute_contact_force(
+        self._robot.GetFootPositionsInBaseFrame(), desired_ddq, contacts=contacts)
+    print("After QP: {}".format(time.time() - time_before))
 
     action = {}
     for leg_id, force in enumerate(contact_forces):
@@ -133,4 +138,5 @@ class TorqueStanceLegController(leg_controller.LegController):
       motor_torques = self._robot.MapContactForceToJointTorques(leg_id, force)
       for joint_id, torque in motor_torques.items():
         action[joint_id] = (0, 0, 0, 0, torque)
+    print("After All: {}".format(time.time() - time_before))
     return action, contact_forces

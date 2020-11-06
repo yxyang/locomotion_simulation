@@ -2,26 +2,22 @@
 import numpy as np
 from filterpy.kalman import KalmanFilter
 from locomotion.utilities.moving_window_filter import MovingWindowFilter
-
+import time
 
 class VelocityEstimator:
   """Estimates base velocity of A1 robot.
 
-  The velocity estimator consists of 2 parts:
-  1) A state estimator for CoM velocity.
+  The velocity estimator consists of a state estimator for CoM velocity.
 
   Two sources of information are used:
   The integrated reading of accelerometer and the velocity estimation from
   contact legs. The readings are fused together using a Kalman Filter.
-
-  2) A moving average filter to smooth out velocity readings
   """
   def __init__(self,
                robot,
                accelerometer_variance=0.1,
                sensor_variance=0.1,
-               initial_variance=0.1,
-               moving_window_filter_size=120):
+               initial_variance=0.1):
     """Initiates the velocity estimator.
 
     See filterpy documentation in the link below for more details.
@@ -46,26 +42,11 @@ class VelocityEstimator:
     self.filter.F = np.eye(3)  # state transition matrix
     self.filter.B = np.eye(3)
 
-    self._window_size = moving_window_filter_size
-    self.moving_window_filter_x = MovingWindowFilter(
-        window_size=self._window_size)
-    self.moving_window_filter_y = MovingWindowFilter(
-        window_size=self._window_size)
-    self.moving_window_filter_z = MovingWindowFilter(
-        window_size=self._window_size)
-    self._estimated_velocity = np.zeros(3)
-    self._last_timestamp = 0
-
   def reset(self):
     self.filter.x = np.zeros(3)
     self.filter.P = np.eye(3) * self._initial_variance
-    self.moving_window_filter_x = MovingWindowFilter(
-        window_size=self._window_size)
-    self.moving_window_filter_y = MovingWindowFilter(
-        window_size=self._window_size)
-    self.moving_window_filter_z = MovingWindowFilter(
-        window_size=self._window_size)
     self._last_timestamp = 0
+    self._estimated_velocity = self.filter.x.copy()
 
   def _compute_delta_time(self, robot_state):
     if self._last_timestamp == 0.:
@@ -104,10 +85,7 @@ class VelocityEstimator:
       observed_velocities = np.mean(observed_velocities, axis=0)
       self.filter.update(observed_velocities)
 
-    vel_x = self.moving_window_filter_x.calculate_average(self.filter.x[0])
-    vel_y = self.moving_window_filter_y.calculate_average(self.filter.x[1])
-    vel_z = self.moving_window_filter_z.calculate_average(self.filter.x[2])
-    self._estimated_velocity = np.array([vel_x, vel_y, vel_z])
+    self._estimated_velocity = self.filter.x.copy()
 
   @property
   def estimated_velocity(self):

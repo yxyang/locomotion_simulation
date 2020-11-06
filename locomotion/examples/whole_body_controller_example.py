@@ -104,7 +104,7 @@ def _setup_controller(robot):
       duty_factor=_DUTY_FACTOR,
       initial_leg_phase=_INIT_PHASE_FULL_CYCLE,
       initial_leg_state=_INIT_LEG_STATE)
-  window_size = 20 if not FLAGS.use_real_robot else 1
+  window_size = 20 if not FLAGS.use_real_robot else 60
   state_estimator = com_velocity_estimator.COMVelocityEstimator(
       robot, window_size=window_size)
   sw_controller = raibert_swing_leg_controller.RaibertSwingLegController(
@@ -205,8 +205,11 @@ def main(argv):
     com_vels.append(np.array(robot.GetBaseVelocity()).copy())
     imu_rates.append(np.array(robot.GetBaseRollPitchYawRate()).copy())
     actions.append(hybrid_action)
+    # print("After Action: ", robot.GetTimeSinceReset() - start_time_robot)
     robot.Step(hybrid_action)
+    # print("After Step: ", robot.GetTimeSinceReset() - start_time_robot)
     current_time = robot.GetTimeSinceReset()
+
 
     if not FLAGS.use_real_robot:
       expected_duration = current_time - start_time_robot
