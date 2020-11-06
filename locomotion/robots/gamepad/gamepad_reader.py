@@ -66,7 +66,7 @@ class Gamepad:
       # Left Joystick F/B axis; need to flip sign for consistency
       self.vx = _interpolate(-event.state, MAX_ABS_RY, self._vel_scale_x)
     elif event.ev_type == 'Absolute' and event.code == 'ABS_RX':
-      self.wz = _interpolate(event.state, MAX_ABS_RX, self._vel_scale_rot)
+      self.wz = _interpolate(-event.state, MAX_ABS_RX, self._vel_scale_rot)
 
     if self._lb_pressed and self._rb_pressed:
       self.estop_flagged = True
