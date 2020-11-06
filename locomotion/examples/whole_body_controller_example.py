@@ -8,6 +8,7 @@ import os
 import scipy.interpolate
 import time
 
+import pickle
 import pybullet_data
 from pybullet_utils import bullet_client
 import pybullet  # pytype:disable=import-error
@@ -143,7 +144,7 @@ def _update_controller_params(controller, lin_speed, ang_speed):
 
 def main(argv):
   """Runs the locomotion controller example."""
-  del argv # unused
+  del argv  # unused
 
   # Construct simulator
   if FLAGS.show_gui and not FLAGS.use_real_robot:
@@ -189,7 +190,7 @@ def main(argv):
 
   start_time = robot.GetTimeSinceReset()
   current_time = start_time
-  com_vels, imu_rates, actions = [], [], []
+  states, actions = [], []
   while current_time - start_time < FLAGS.max_time_secs:
     start_time_robot = current_time
     start_time_wall = time.time()
@@ -201,16 +202,21 @@ def main(argv):
       break
     _update_controller_params(controller, lin_speed, ang_speed)
     controller.update()
-    hybrid_action, _ = controller.get_action()
-    com_vels.append(np.array(robot.GetBaseVelocity()).copy())
-    imu_rates.append(np.array(robot.GetBaseRollPitchYawRate()).copy())
+    hybrid_action, info = controller.get_action()
+    states.append(
+        dict(timestamp=robot.GetTimeSinceReset(),
+             base_rpy=robot.GetBaseRollPitchYaw(),
+             motor_angles=robot.GetMotorAngles(),
+             base_vel=robot.GetBaseVelocity(),
+             base_vels_body_frame=controller.state_estimator.
+             com_velocity_body_frame,
+             base_rpy_rate=robot.GetBaseRollPitchYawRate(),
+             motor_vels=robot.GetMotorVelocities(),
+             contacts=robot.GetFootContacts(),
+             qp_sol=info['qp_sol']))
     actions.append(hybrid_action)
-    # print("After Action: ", robot.GetTimeSinceReset() - start_time_robot)
     robot.Step(hybrid_action)
-    # print("After Step: ", robot.GetTimeSinceReset() - start_time_robot)
     current_time = robot.GetTimeSinceReset()
-
-
     if not FLAGS.use_real_robot:
       expected_duration = current_time - start_time_robot
       actual_duration = time.time() - start_time_wall
@@ -221,10 +227,8 @@ def main(argv):
     gamepad.stop()
 
   if FLAGS.logdir:
-    np.savez(os.path.join(logdir, 'action.npz'),
-             action=actions,
-             com_vels=com_vels,
-             imu_rates=imu_rates)
+    np.savez(os.path.join(logdir, 'action.npz'), action=actions)
+    pickle.dump(states, open(os.path.join(logdir, 'states.pkl'), 'wb'))
     logging.info("logged to: {}".format(logdir))
 
 
