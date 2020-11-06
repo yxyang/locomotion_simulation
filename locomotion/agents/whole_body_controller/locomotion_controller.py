@@ -6,7 +6,7 @@ from __future__ import print_function
 
 from typing import Any
 import numpy as np
-import time
+# import time
 
 class LocomotionController(object):
   """Generates the quadruped locomotion.
@@ -76,7 +76,6 @@ class LocomotionController(object):
     self._stance_leg_controller.update(self._time_since_reset)
 
   def get_action(self):
-    time_before = time.time()
     """Returns the control ouputs (e.g. positions/torques) for all motors."""
     swing_action = self._swing_leg_controller.get_action()
     stance_action, qp_sol = self._stance_leg_controller.get_action()

@@ -179,6 +179,8 @@ class A1Robot(a1.A1):
     # Convert quaternion from wxyz to xyzw, which is default for Pybullet.
     q = state.imu.quaternion
     self._base_orientation = np.array([q[1], q[2], q[3], q[0]])
+    rpy = state.imu.rpy
+    self._base_orientation_rpy = np.array([rpy[0], rpy[1], rpy[2]])
     self._motor_angles = np.array([motor.q for motor in state.motorState[:12]])
     self._motor_velocities = np.array(
         [motor.dq for motor in state.motorState[:12]])
@@ -210,10 +212,10 @@ class A1Robot(a1.A1):
         self.quadruped)[0]
 
   def GetBaseRollPitchYaw(self):
-    return self._pybullet_client.getEulerFromQuaternion(self._base_orientation)
+    return self._base_orientation_rpy
 
   def GetTrueBaseRollPitchYaw(self):
-    return self._pybullet_client.getEulerFromQuaternion(self._base_orientation)
+    return self._base_orientation_rpy
 
   def GetBaseRollPitchYawRate(self):
     return self.GetTrueBaseRollPitchYawRate()

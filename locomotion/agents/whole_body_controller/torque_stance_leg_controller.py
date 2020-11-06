@@ -8,7 +8,7 @@ from __future__ import print_function
 from typing import Any, Sequence, Tuple
 
 import numpy as np
-import time
+# import time
 
 from locomotion.agents.whole_body_controller import gait_generator as gait_generator_lib
 from locomotion.agents.whole_body_controller import leg_controller
@@ -74,41 +74,33 @@ class TorqueStanceLegController(leg_controller.LegController):
   def update(self, current_time):
     del current_time
 
-  def _estimate_robot_height(self, contacts):
-    if np.sum(contacts) == 0:
-      # All foot in air, no way to estimate
-      return self._desired_body_height
-    else:
-      base_orientation = self._robot.GetBaseOrientation()
-      rot_mat = self._robot.pybullet_client.getMatrixFromQuaternion(
-          base_orientation)
-      rot_mat = np.array(rot_mat).reshape((3, 3))
-
-      foot_positions = self._robot.GetFootPositionsInBaseFrame()
-      foot_positions_world_frame = (rot_mat.dot(foot_positions.T)).T
-      # pylint: disable=unsubscriptable-object
-      useful_heights = contacts * (-foot_positions_world_frame[:, 2])
-      return np.sum(useful_heights) / np.sum(contacts)
+  def _estimate_robot_height(self, contacts, foot_positions):
+    base_orientation = self._robot.GetBaseOrientation()
+    rot_mat = self._robot.pybullet_client.getMatrixFromQuaternion(
+        base_orientation)
+    rot_mat = np.array(rot_mat).reshape((3, 3))
+    foot_positions_world_frame = (rot_mat.dot(foot_positions.T)).T
+    # pylint: disable=unsubscriptable-object
+    useful_heights = contacts * (-foot_positions_world_frame[:, 2])
+    return np.sum(useful_heights) / np.sum(contacts)
 
   def get_action(self):
     """Computes the torque for stance legs."""
     # Actual q and dq
-    time_before = time.time()
     contacts = np.array(
         [(leg_state in (gait_generator_lib.LegState.STANCE,
                         gait_generator_lib.LegState.EARLY_CONTACT))
          for leg_state in self._gait_generator.desired_leg_state],
-        dtype=np.int32)
+        dtype=np.float64)
+    foot_positions = self._robot.GetFootPositionsInBaseFrame()
 
-    robot_com_position = np.array(
-        (0., 0., self._estimate_robot_height(contacts)))
+    robot_com_height = self._estimate_robot_height(contacts, foot_positions)
     robot_com_velocity = self._state_estimator.com_velocity_body_frame
     robot_com_roll_pitch_yaw = np.array(self._robot.GetBaseRollPitchYaw())
-    robot_com_roll_pitch_yaw[2] = 0  # To prevent yaw drifting
+    robot_com_roll_pitch_yaw[2] = 0.  # To prevent yaw drifting
     robot_com_roll_pitch_yaw_rate = self._robot.GetBaseRollPitchYawRate()
-    robot_q = np.hstack((robot_com_position, robot_com_roll_pitch_yaw))
+    robot_q = np.hstack(([0., 0., robot_com_height], robot_com_roll_pitch_yaw))
     robot_dq = np.hstack((robot_com_velocity, robot_com_roll_pitch_yaw_rate))
-
     # Desired q and dq
     desired_com_position = np.array((0., 0., self._desired_body_height),
                                     dtype=np.float64)
@@ -123,10 +115,8 @@ class TorqueStanceLegController(leg_controller.LegController):
     # Desired ddq
     desired_ddq = KP * (desired_q - robot_q) + KD * (desired_dq - robot_dq)
     desired_ddq = np.clip(desired_ddq, MIN_DDQ, MAX_DDQ)
-    print("Before QP: {}".format(time.time() - time_before))
     contact_forces = self._qp_torque_optimizer.compute_contact_force(
-        self._robot.GetFootPositionsInBaseFrame(), desired_ddq, contacts=contacts)
-    print("After QP: {}".format(time.time() - time_before))
+        foot_positions, desired_ddq, contacts=contacts)
 
     action = {}
     for leg_id, force in enumerate(contact_forces):
@@ -138,5 +128,4 @@ class TorqueStanceLegController(leg_controller.LegController):
       motor_torques = self._robot.MapContactForceToJointTorques(leg_id, force)
       for joint_id, torque in motor_torques.items():
         action[joint_id] = (0, 0, 0, 0, torque)
-    print("After All: {}".format(time.time() - time_before))
     return action, contact_forces

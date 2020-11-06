@@ -1,8 +1,6 @@
 """Estimates base velocity for A1 robot from accelerometer readings."""
 import numpy as np
 from filterpy.kalman import KalmanFilter
-from locomotion.utilities.moving_window_filter import MovingWindowFilter
-import time
 
 class VelocityEstimator:
   """Estimates base velocity of A1 robot.
