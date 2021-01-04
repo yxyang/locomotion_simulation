@@ -7,5 +7,4 @@ from glob import glob
 setup(name="locomotion_simulation",
       version="0.0.1",
       packages=find_packages(),
-      ext_modules=extensions,
       install_requires=["gym", "pybullet", "numpy", "scipy", "attrs"])
